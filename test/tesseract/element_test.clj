@@ -11,21 +11,6 @@
   (testing "rendered elements"
     (let [div (elem/defelement div)
           span (elem/defelement span)]
-      (is (= {:tag :div
-              :attrs {:class "some-class"
-                      :data-attr "data attribute"}
-              :children []}
-             (div {:class "some-class"
-                        :data-attr "data attribute"})))
-      (is (= {:tag :div
-              :attrs {:class "parent"}
-              :children [{:tag :span
-                          :attrs {:class "child"}
-                          :children []}]}
-             (div
-               {:class "parent"}
-               (span
-                 {:class "child"}))))
       (is (= "<div></div>"
              (elem/render (div {}))))
       (is (= "<div class=\"some-class\"></div>"
@@ -34,4 +19,8 @@
              (elem/render (div
                             {:class "parent"}
                             (span
-                              {:class "child"}))))))))
+                              {:class "child"})))))
+      (is (= "<div>Arbitrary text here</div>"
+             (elem/render (div
+                            {}
+                            "Arbitrary text here")))))))
