@@ -63,4 +63,8 @@
     (is (= "first second"
            (impl/to-attr (sorted-set-by
                            compare
-                           :first :second))))))
+                           :first :second)))))
+  (testing "Multiple escaping"
+    (is (attr= "&amp; &apos; &quot;"
+               (impl/to-attr {"&" true
+                              ["'" "\""] true})))))
