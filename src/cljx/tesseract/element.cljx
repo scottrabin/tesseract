@@ -3,25 +3,25 @@
     [tesseract.impl :as impl]
     [clojure.string]))
 
-(defn to-attr
+(defn to-element-attribute
   "Translate an attribute key value pair to a string"
-  ([pair]
-   (to-attr (first pair) (second pair)))
+  ([[k v]]
+   (to-element-attribute k v))
   ([k v]
    (str (name k) "=\"" v "\"")))
 
 (defrecord Element [tag attrs children]
-  impl/IRender
-  (render [_]
+  Object
+  (toString [_]
     (let [tag-name (-> tag name str)]
       (str
         "<"
         tag-name
         (when-not (empty? attrs)
-          (str " " (clojure.string/join " " (map to-attr attrs))))
+          (str " " (clojure.string/join " " (map to-element-attribute attrs))))
         ">"
         (when-not (empty? children)
-          (clojure.string/join (map impl/render children)))
+          (clojure.string/join (map str children)))
         "</" tag-name ">"))))
 
 (defmacro defelement

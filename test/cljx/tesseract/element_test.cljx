@@ -13,20 +13,20 @@
     (testing "defined value"
       (is (ifn? div)))))
 
-(deftest element-render
+(deftest element-to-string
   (testing "rendered elements"
     (let [div (defelement div)
           span (defelement span)]
       (is (= "<div></div>"
-             (render (div {}))))
+             (str (div {}))))
       (is (= "<div class=\"some-class\"></div>"
-             (render (div {:class "some-class"}))))
+             (str (div {:class "some-class"}))))
       (is (= "<div class=\"parent\"><span class=\"child\"></span></div>"
-             (render (div
-                       {:class "parent"}
-                       (span
-                         {:class "child"})))))
+             (str (div
+                    {:class "parent"}
+                    (span
+                      {:class "child"})))))
       (is (= "<div>Arbitrary text here</div>"
-             (render (div
-                       {}
-                       "Arbitrary text here")))))))
+             (str (div
+                    {}
+                    "Arbitrary text here")))))))

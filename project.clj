@@ -28,13 +28,12 @@
                                       "target/generated/cljs-test.js"]}
               :builds
               {:dev
-               {:source-paths ["target/generated/src/clj" "target/generated/src/cljs"]
+               {:source-paths ["target/classes"]
                 :compiler {:output-to "resources/public/js/main.js"
                            :optimizations :none
                            :pretty-print true}}
                :test
-               {:source-paths ["target/generated/src/clj" "target/generated/src/cljs"
-                               "target/generated/test/cljs"]
+               {:source-paths ["target/classes" "target/test-classes"]
                 :compiler {:output-to "target/generated/cljs-test.js"
                            :optimizations :whitespace ; clojurescript.test cannot work with :optimizations :none
                            :pretty-print true}}}})
