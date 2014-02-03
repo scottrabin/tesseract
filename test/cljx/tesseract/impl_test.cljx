@@ -1,6 +1,9 @@
 (ns tesseract.impl-test
-  (:require [clojure.test :refer :all]
-            [tesseract.impl :as impl]))
+  #+clj (:require [tesseract.impl :as impl]
+                  [clojure.test :refer :all])
+  #+cljs (:require [tesseract.impl :as impl]
+                   [cemerick.cljs.test :as t])
+  #+cljs (:require-macros [cemerick.cljs.test :refer [is deftest testing]]))
 
 (defn attr=
   "Compare attribute values to check equality"
