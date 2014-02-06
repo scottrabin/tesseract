@@ -9,7 +9,7 @@
             [com.keminglabs/cljx "0.3.2"]
             [com.cemerick/clojurescript.test "0.2.2"]]
   :hooks [leiningen.cljsbuild cljx.hooks]
-  :src-paths ["src/cljx" "target/classes"]
+  :source-paths ["target/classes"]
   :test-paths ["target/test-classes"]
   :cljx {:builds
          [{:source-paths ["src/cljx"]
@@ -18,10 +18,10 @@
           {:source-paths ["src/cljx"]
            :output-path "target/classes"
            :rules :cljs}
-          {:source-paths ["test/cljx"]
+          {:source-paths ["src/cljx" "test/cljx"]
            :output-path "target/test-classes"
            :rules :clj}
-          {:source-paths ["test/cljx"]
+          {:source-paths ["src/cljx" "test/cljx"]
            :output-path "target/test-classes"
            :rules :cljs}]}
   :cljsbuild {:test-commands {"unit" ["phantomjs" :runner
