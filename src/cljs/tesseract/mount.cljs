@@ -39,8 +39,8 @@
   [env id]
   (swap! env (fn [{:keys [containers components]}]
                (assoc env
-                      :containers (dissoc containers id)
-                      :components (dissoc components id)))))
+                      :containers (if containers (dissoc containers id))
+                      :components (if components (dissoc components id))))))
 
 (defn register-container!
   [env container]
