@@ -2,6 +2,7 @@
   "Handles mounting components into and out of env, a map ref")
 
 (def ROOT_ID_ATTR "data-tesseractid")
+(def DOCUMENT_NODE)
 
 (defprotocol IMount
   (mount! [this root-id container])
@@ -22,7 +23,7 @@
 (defn create-root-id [] (swap! id-seq inc))
 
 (defn root-element [container]
-  (if (= (.-nodeType container) 9) ;; 9 => <document>
+  (if (= (.-nodeType container) DOCUMENT_NODE)
     (.-documentElement container)
     (.-firstChild container)))
 
