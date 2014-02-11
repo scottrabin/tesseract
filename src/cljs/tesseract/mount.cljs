@@ -9,7 +9,7 @@
   (unmount! [this root-id container]))
 
 (defprotocol IMountUpdate
-  (update-mount! [this new-attrs]))
+  (update-mount! [this next-component]))
 
 (defn- attr [node k] (.getAttribute node k)) ;; TODO require from somewhere else
 
