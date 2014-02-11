@@ -28,7 +28,8 @@
     (.-firstChild container)))
 
 (defn root-id [container]
-  (attr (root-element container) ROOT_ID_ATTR))
+  (when-let [el (root-element container)]
+    (attr el ROOT_ID_ATTR)))
 
 (defn component-by-root-id [env id] (get-in @env [:components id]))
 
