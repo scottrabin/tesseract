@@ -66,7 +66,13 @@
          IComponent
          (~'-update [this#]
            )
-         (~'-render ~@(:render spec-map)))
+         (~'-render ~@(:render spec-map))
+
+         tesseract.mount/IMount
+         (~'mount! [this# id# container#]
+           (set! (.-innerHTML container#)
+                 (str (render this#))))
+         )
        ~@(for [[protocol method-key] {`IShouldUpdate :should-update?
                                       `IWillUpdate :will-update
                                       `IDidUpdate :did-update
