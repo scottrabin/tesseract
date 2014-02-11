@@ -29,7 +29,8 @@
               :builds
               {:dev
                {:source-paths ["target/classes"]
-                :compiler {:output-to "resources/public/js/main.js"
+                :compiler {:output-to "resources/dev/js/main.js"
+                           :output-dir "resources/dev/js"
                            :optimizations :none
                            :pretty-print true}}
                :test
