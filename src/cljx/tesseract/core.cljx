@@ -32,7 +32,7 @@
   (did-update [this prev-component root-node]))
 
 (defprotocol IComponent
-  (-update [this])
+  (-update [this next-component])
   (-render [this]))
 
 (defn render [component]
@@ -51,7 +51,12 @@
 
 #+cljs
 (defn attach [component container]
-  (mount/mount-component! mount-env component container))
+  (mount/mount-component! mount-env component container)
+  )
+
+#+cljs
+(defn mount [component id container]
+  (set! (.-innerHTML container) (-> component render str)))
 
 #+clj
 (defn parse-spec [spec]
@@ -64,15 +69,15 @@
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state ~'bound-methods]
          IComponent
-         (~'-update [this#]
+         (~'-update [this# next-component#]
            )
          (~'-render ~@(:render spec-map))
 
          tesseract.mount/IMount
-         (~'mount! [this# id# container#]
-           (set! (.-innerHTML container#)
-                 (str (render this#))))
-         )
+         (~'mount! [this# id# container#] (mount this# id# container#))
+         tesseract.mount/IMountUpdate
+         (~'update-mount! [this# next-component#]
+           (-update this# next-component#)))
        ~@(for [[protocol method-key] {`IShouldUpdate :should-update?
                                       `IWillUpdate :will-update
                                       `IDidUpdate :did-update
