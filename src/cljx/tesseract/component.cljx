@@ -53,7 +53,7 @@
          ~(if (contains? spec-map :should-update?)
             `(~'-should-update? ~@(:should-update? spec-map))
             `(~'-should-update? [this# next-component#]
-                               (default-should-update? this# next-component#)))
+                                (default-should-update? this# next-component#)))
          IComponent
          (~'-update [this# next-component#]
            )
