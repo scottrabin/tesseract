@@ -16,6 +16,8 @@
                         (dom/div {}))
                       (-update [component new-component]
                         (swap! calls update-in [:a :update] (fnil inc 0)))
+                      component/IShouldUpdate
+                      (-should-update? [component next-component] true)
                       component/IDidMount
                       (-did-mount [component container]
                         (swap! calls update-in [:a :did-mount] (fnil inc 0)))
@@ -29,6 +31,8 @@
                         (dom/div {}))
                       (-update [component new-component]
                         (swap! calls update-in [:b :update] (fnil inc 0)))
+                      component/IShouldUpdate
+                      (-should-update? [component next-component] true)
                       component/IDidMount
                       (-did-mount [component container]
                         (swap! calls update-in [:b :did-mount] (fnil inc 0)))
@@ -38,10 +42,12 @@
         env (atom {})]
     (testing "mounting when no component is mounted"
       (mount/mount-component! env component-a container)
-      (is (= 1 (get-in @calls [:a :did-mount] 0)))
       (is (= 1 (get-in @calls [:a :render] 0)))
+      (is (= 0 (get-in @calls [:a :update] 0)))
+      (is (= 1 (get-in @calls [:a :did-mount] 0)))
       (is (= 0 (get-in @calls [:a :will-unmount] 0)))
       (is (= 0 (get-in @calls [:b :render] 0)))
+      (is (= 0 (get-in @calls [:b :update] 0)))
       (is (= 0 (get-in @calls [:b :did-mount] 0)))
       (is (= 0 (get-in @calls [:b :will-unmount] 0)))
       ;; TODO test update calls
@@ -50,13 +56,25 @@
 
     (testing "mounting a different type of component on container with component"
       (mount/mount-component! env component-b container)
-      (is (= 1 (get-in @calls [:a :did-mount] 0)))
       (is (= 1 (get-in @calls [:a :render] 0)))
+      (is (= 0 (get-in @calls [:a :update] 0)))
+      (is (= 1 (get-in @calls [:a :did-mount] 0)))
       (is (= 1 (get-in @calls [:a :will-unmount] 0)))
       (is (= 1 (get-in @calls [:b :render] 0)))
       (is (= 1 (get-in @calls [:b :did-mount] 0)))
       (is (= 0 (get-in @calls [:b :will-unmount] 0)))
+      (is (= 0 (get-in @calls [:b :update] 0)))
       ;; TODO test update calls
       (is (= component-b (mount/component-by-root-id env (mount/root-id container))))
       (is (= container (mount/container-by-root-id env (mount/root-id container))))
-      )))
+      )
+    (testing "mounting same type of component on container with component"
+      (mount/mount-component! env component-b container)
+      (is (= 1 (get-in @calls [:a :render] 0)))
+      (is (= 0 (get-in @calls [:a :update] 0)))
+      (is (= 1 (get-in @calls [:a :did-mount] 0)))
+      (is (= 1 (get-in @calls [:a :will-unmount] 0)))
+      (is (= 1 (get-in @calls [:b :render] 0)))
+      (is (= 1 (get-in @calls [:b :did-mount] 0)))
+      (is (= 0 (get-in @calls [:b :will-unmount] 0)))
+      (is (= 1 (get-in @calls [:b :update] 0))))))

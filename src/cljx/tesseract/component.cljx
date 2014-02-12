@@ -35,17 +35,13 @@
     (= (:attrs this) (:attrs next-component))
     (= (:state this) (:state next-component))))
 
-(defn update [component next-component]
+(defn update [component next-component container]
   (when (should-update? component next-component)
     (when (satisfies? IWillUpdate component)
       (-will-update component next-component))
-
-    ;; TODO ME
-
-    ;(when (satisfies? IDidUpdate component)
-      ;(did-update next-component component))
-    ))
-
+    (-update component next-component)
+    (when (satisfies? IDidUpdate next-component)
+      (-did-update next-component component container))))
 
 #+clj
 (defn emit-defcomponent
