@@ -7,7 +7,7 @@
   (-will-mount [this]))
 
 (defprotocol IDidMount
-  (-did-mount [this node]))
+  (-did-mount [this container]))
 
 (defprotocol IWillUnmount
   (-will-unmount [this]))

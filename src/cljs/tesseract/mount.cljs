@@ -5,13 +5,6 @@
 (def ROOT_ID_ATTR "data-tesseractid")
 (def DOCUMENT_NODE)
 
-(defprotocol IMount
-  (mount! [this root-id container])
-  (unmount! [this root-id container]))
-
-(defprotocol IMountUpdate
-  (update-mount! [this next-component]))
-
 (defn- attr [node k] (.getAttribute node k)) ;; TODO require from somewhere else
 (defn- set-attr! [node k v] (.setAttribute node k v))
 
@@ -61,7 +54,8 @@
 (defn unmount-component! [env container]
   (when-let [id (root-id container)]
     (when-let [component (component-by-root-id env id)]
-      (unmount! component id container)
+      (when (satisfies? component/IWillUnmount component)
+        (component/-will-unmount component)) ;; TODO probably needs try/catch?
       (unregister-root-id! env id)
       (empty-node! container)
       true)))
@@ -83,6 +77,9 @@
         (let [id (register-component! env component container)]
           (mount-into-container! component container)
           (if-let [el (root-element container)]
-            (set-attr! el ROOT_ID_ATTR id)
+            (do
+              (set-attr! el ROOT_ID_ATTR id)
+              (when (satisfies? component/IDidMount component)
+                (component/-did-mount component container)))
             (throw (js/Error. "No root element detected on mounted component")))
           nil)))))
