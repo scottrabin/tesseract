@@ -55,7 +55,7 @@
   ([k v]
    (str (name k)
         "=\""
-        (clojure.string/escape v HTML_ATTR_ESCAPE)
+        (clojure.string/escape (to-attr v) HTML_ATTR_ESCAPE)
         "\"")))
 
 (defrecord Element [tag attrs children]
@@ -69,7 +69,7 @@
           (str " " (clojure.string/join " " (clojure.core/map to-element-attribute attrs))))
         ">"
         (when-not (empty? children)
-          (clojure.string/join (clojure.core/map str children)))
+          (clojure.string/join (clojure.core/map str (flatten children))))
         "</" tag-name ">"))))
 
 (defmacro defelement
