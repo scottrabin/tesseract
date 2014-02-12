@@ -61,8 +61,14 @@
       true)))
 
 (defn- mount-into-container!
-  [component container]
-  (set! (.-innerHTML container) (-> component component/-render str)))
+  [component id container]
+  (set! (.-innerHTML container) (-> component component/-render str))
+  (if-let [el (root-element container)]
+    (do
+      (set-attr! el ROOT_ID_ATTR id)
+      (when (satisfies? component/IDidMount component)
+        (component/-did-mount component container)))
+    (throw (js/Error. "No root element detected on mounted component"))))
 
 (defn mount-component!
   [env component container]
@@ -75,11 +81,4 @@
         (when existing-id
           (unmount-component! env container))
         (let [id (register-component! env component container)]
-          (mount-into-container! component container)
-          (if-let [el (root-element container)]
-            (do
-              (set-attr! el ROOT_ID_ATTR id)
-              (when (satisfies? component/IDidMount component)
-                (component/-did-mount component container)))
-            (throw (js/Error. "No root element detected on mounted component")))
-          nil)))))
+          (mount-into-container! component id container))))))
