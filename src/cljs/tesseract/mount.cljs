@@ -1,5 +1,6 @@
 (ns tesseract.mount
-  "Handles mounting components into and out of env, a map ref")
+  "Handles mounting components into and out of env, a map ref"
+  (:require [tesseract.component :as component]))
 
 (def ROOT_ID_ATTR "data-tesseractid")
 (def DOCUMENT_NODE)
@@ -65,19 +66,22 @@
       (empty-node! container)
       true)))
 
-(defn should-update? [component root-id container]
-  false)
+(defn- mount-into-container!
+  [component container]
+  (set! (.-innerHTML container) (-> component component/-render str)))
 
 (defn mount-component!
   [env component container]
-  (let [existing-id (root-id container)]
-    (if (and existing-id (should-update? component existing-id container))
-      nil ;; TODO
+  (let [existing-id (root-id container)
+        existing-component (when existing-id (component-by-root-id env existing-id))]
+    (if (and existing-component
+             (= (type existing-component) (type component)))
+      (component/update existing-component component)
       (do
         (when existing-id
           (unmount-component! env container))
         (let [id (register-component! env component container)]
-          (mount! component id container)
+          (mount-into-container! component container)
           (if-let [el (root-element container)]
             (set-attr! el ROOT_ID_ATTR id)
             (throw (js/Error. "No root element detected on mounted component")))
