@@ -76,7 +76,7 @@
         existing-component (when existing-id (component-by-root-id env existing-id))]
     (if (and existing-component
              (= (type existing-component) (type component)))
-      (component/update existing-component component)
+      (component/update existing-component component container)
       (do
         (when existing-id
           (unmount-component! env container))
