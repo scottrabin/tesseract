@@ -12,6 +12,7 @@
   (update-mount! [this next-component]))
 
 (defn- attr [node k] (.getAttribute node k)) ;; TODO require from somewhere else
+(defn- set-attr! [node k v] (.setAttribute node k v))
 
 (defn- empty-node!
   "http://jsperf.com/emptying-a-node"
@@ -20,7 +21,7 @@
 
 ;; TODO something smarter
 (def ^:private id-seq (atom 0))
-(defn create-root-id [] (swap! id-seq inc))
+(defn create-root-id [] (str (swap! id-seq inc)))
 
 (defn root-element [container]
   (if (= (.-nodeType container) DOCUMENT_NODE)
@@ -38,7 +39,7 @@
 (defn unregister-root-id!
   "Dissociates root id from containers + components in env"
   [env id]
-  (swap! env (fn [{:keys [containers components]}]
+  (swap! env (fn [{:keys [containers components] :as env}]
                (assoc env
                       :containers (if containers (dissoc containers id))
                       :components (if components (dissoc components id))))))
@@ -64,8 +65,20 @@
       (empty-node! container)
       true)))
 
+(defn should-update? [component root-id container]
+  false)
+
 (defn mount-component!
   [env component container]
-  (unmount-component! env container) ;; TODO update if already mounted
-  (let [id (register-component! env component container)]
-    (mount! component id container)))
+  (let [existing-id (root-id container)]
+    (if (and existing-id (should-update? component existing-id container))
+      nil ;; TODO
+      (do
+        (when existing-id
+          (unmount-component! env container))
+        (let [id (register-component! env component container)]
+          (mount! component id container)
+          (if-let [el (root-element container)]
+            (set-attr! el ROOT_ID_ATTR id)
+            (throw (js/Error. "No root element detected on mounted component")))
+          nil)))))
