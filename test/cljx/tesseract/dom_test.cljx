@@ -298,7 +298,7 @@
     (is (= "<div></div>"
            (str (dom/div {}))))
     (is (= "<div class=\"some-class\"></div>"
-           (str (dom/div {:class "some-class"}))))
+           (str (dom/div {:class :some-class}))))
     (is (= "<div class=\"parent\"><span class=\"child\"></span></div>"
            (str (dom/div {:class "parent"}
                          (dom/span {:class "child"})))))
@@ -307,3 +307,8 @@
   (testing "escaping attributes"
     (is (= "<div class=\"&lt;&gt;&quot;&apos;&amp;\"></div>"
            (str (dom/div {:class "<>\"'&"}))))))
+
+(deftest recurses-children
+  (is (= "<div><span>0</span><span>1</span></div>"
+         (str (dom/div {} (for [i (range 2)]
+                            (dom/span {} i)))))))
