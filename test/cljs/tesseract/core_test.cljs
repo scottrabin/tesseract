@@ -12,9 +12,9 @@
   (will-mount [this])
   (did-mount [this container])
   (render [component]
-          (dom/ul {:class :test-component}
-                  (for [i (range 10)]
-                    (dom/li {} (str "Number " i))))))
+    (dom/ul {:class :test-component}
+            (for [i (range 10)]
+              (dom/li {} (str "Number " i))))))
 
 (deftest defines-convenience-constructor
   (is (ifn? NumList)))
