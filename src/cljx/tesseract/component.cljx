@@ -44,21 +44,6 @@
       (-did-update next-component component container))))
 
 #+clj
-(defn- emit-bound-methods
-  "Emits form to bind instance to map of methods, and assoc to the instance.
-  Example: {:a some-fn} => {:a (partial some-fn component)}
-
-  A potential future optimization could be avoidance of (partial) by transforming,
-  (fn [component a b]) =>
-  (let [m# (fn [component a b])] (fn [a# b#] (m# ~inst a# b#))"
-  [inst bound-methods]
-  (if (seq bound-methods)
-    `(assoc ~inst :bound-methods
-            (hash-map
-              ~@(mapcat (fn [[k f]] [k `(partial ~f ~inst)]) bound-methods)))
-    inst))
-
-#+clj
 (defn emit-defcomponent
   "Emits forms to define a record and convenience constructor for components"
   [component-name spec-map]
@@ -84,17 +69,14 @@
                   `(~'-will-mount ~@spec)])
                (when-let [spec (:did-mount spec-map)]
                  [`IDidMount
-                  `(~'-did-mount ~@spec)])]
-        inst (gensym "inst")]
+                  `(~'-did-mount ~@spec)])]]
     `(do
-       (defrecord ~rec-name [~'attrs ~'children ~'state ~'bound-methods]
+       (defrecord ~rec-name [~'attrs ~'children ~'state]
          ~@(apply concat impls))
        (defn ~component-name
          [attrs# & children#]
-         (let [state# ~(:default-state spec-map '{})
-               ~inst (new ~rec-name
+         (let [state# ~(:default-state spec-map '{})]
+               (new ~rec-name
                           attrs#
                           (vec children#)
-                          state#
-                          nil)]
-           ~(emit-bound-methods inst (:bound-methods spec-map)))))))
+                          state#))))))
