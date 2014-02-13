@@ -42,13 +42,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn update-todo [component todo new-values]
+  (tesseract/set-state! component
+                        (update-in (:state component)
+                                   [:todos (:id todo)]
+                                   merge new-values)))
 (defcomponent TodoList
-  (bound-methods
-    {:update-todo (fn update-todo [component todo new-values]
-                    (tesseract/set-state! component
-                                          (update-in (:state component)
-                                                     [:todos (:id todo)]
-                                                     merge new-values)))})
   (default-state
     {:todos {}})
   (on-update-attrs [{old-attrs :attrs :as component} new-attrs]
@@ -62,7 +61,7 @@
                   ; they are a value for the :item key of the :attrs hash?
                   ; It would be nice to write (map Todo (-> component :state :todos))
                   (map #(Todo {:item %
-                               :update-todo (get-in component [:bound-methods :update-todo])})
+                               :update-todo (partial update-todo component)})
                        (:todos state)))))
 
 
