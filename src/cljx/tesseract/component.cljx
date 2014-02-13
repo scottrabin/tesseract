@@ -20,7 +20,7 @@
   (-will-update [this next-component]))
 
 (defprotocol IDidUpdate
-  (-did-update [this prev-component root-node]))
+  (-did-update [this prev-component container]))
 
 (defprotocol IComponent
   (-update [this next-component])
