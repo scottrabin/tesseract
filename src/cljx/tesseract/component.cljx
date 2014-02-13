@@ -44,36 +44,57 @@
       (-did-update next-component component container))))
 
 #+clj
+(defn- emit-bound-methods
+  "Emits form to bind instance to map of methods, and assoc to the instance.
+  Example: {:a some-fn} => {:a (partial some-fn component)}
+
+  A potential future optimization could be avoidance of (partial) by transforming,
+  (fn [component a b]) =>
+  (let [m# (fn [component a b])] (fn [a# b#] (m# ~inst a# b#))"
+  [inst bound-methods]
+  (if (seq bound-methods)
+    `(assoc ~inst :bound-methods
+            (hash-map
+              ~@(mapcat (fn [[k f]] [k `(partial ~f ~inst)]) bound-methods)))
+    inst))
+
+#+clj
 (defn emit-defcomponent
+  "Emits forms to define a record and convenience constructor for components"
   [component-name spec-map]
-  (let [rec-name (symbol (str component-name "Component"))]
+  (when-not (contains? spec-map :render)
+    (throw (IllegalArgumentException. "defcomponent requires render to be defined")))
+  (let [rec-name (symbol (str component-name "Component"))
+        impls [[`IComponent
+                `(~'-update [this# next-component#])
+                `(~'-render ~@(:render spec-map))]
+               [`IShouldUpdate
+                (if-let [spec (:should-update? spec-map)]
+                  `(~'-should-update? ~@spec)
+                  `(~'-should-update? [this# next-component#]
+                                      (default-should-update? this# next-component#)))]
+               (when-let [spec (:will-update spec-map)]
+                 [`IWillUpdate
+                  `(~'-will-update ~@spec)])
+               (when-let [spec (:did-update spec-map)]
+                 [`IDidUpdate
+                  `(~'-did-update ~@spec)])
+               (when-let [spec (:will-mount spec-map)]
+                 [`IWillMount
+                  `(~'-will-mount ~@spec)])
+               (when-let [spec (:did-mount spec-map)]
+                 [`IDidMount
+                  `(~'-did-mount ~@spec)])]
+        inst (gensym "inst")]
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state ~'bound-methods]
-         IShouldUpdate
-         ~(if (contains? spec-map :should-update?)
-            `(~'-should-update? ~@(:should-update? spec-map))
-            `(~'-should-update? [this# next-component#]
-                                (default-should-update? this# next-component#)))
-         IComponent
-         (~'-update [this# next-component#]
-           )
-         (~'-render ~@(:render spec-map)))
-       ~@(for [[protocol method-key] {`IWillUpdate :will-update
-                                      `IDidUpdate :did-update
-                                      `IWillMount :will-mount
-                                      `IDidMount :did-mount}
-               :when (contains? spec-map method-key)]
-           `(extend-type ~rec-name
-              ~protocol
-              (~(symbol (str "-" (name method-key))) ~(spec-map method-key))))
+         ~@(apply concat impls))
        (defn ~component-name
          [attrs# & children#]
-         (let [rec# (new ~rec-name
-                         attrs#
-                         (vec children#)
-                         ~(spec-map :default-state {})
-                         nil)]
-           (assoc rec# :bound-methods
-                  (into {} (map (fn [[k# method#]]
-                                  [k# (partial method# rec#)])
-                                ~(:bound-methods spec-map)))))))))
+         (let [state# ~(:default-state spec-map '{})
+               ~inst (new ~rec-name
+                          attrs#
+                          (vec children#)
+                          state#
+                          nil)]
+           ~(emit-bound-methods inst (:bound-methods spec-map)))))))
