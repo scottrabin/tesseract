@@ -42,3 +42,24 @@
     (doseq [i (range 10)]
       (is (= (.-textContent (aget js/document.body.firstChild.children i))
              (str "Number " i))))))
+
+(defcomponent Comment
+  (render [{:keys [attrs children]}]
+    (dom/div {:class :comment}
+             (dom/h2 {:class :comment-author} (:author attrs))
+             children)))
+
+(defcomponent CommentList
+  (render [component]
+    (dom/div {:class :comment-list}
+             (Comment {:author "Logan Linn"} "This is one comment")
+             (Comment {:author "Scott Rabin"} "This is *another* comment"))))
+
+(deftest test-comment-list
+  (let [comment-list (CommentList {})
+        out (core/render comment-list)]
+    (is (= :div (:tag out)))
+    (is (= :comment-list (-> out :attrs :class)))
+    (is (= 2 (count (:children out))))
+    (is (= "<div class=\"comment-list\"><div class=\"comment\"><h2 class=\"comment-author\">Logan Linn</h2>This is one comment</div><div class=\"comment\"><h2 class=\"comment-author\">Scott Rabin</h2>This is *another* comment</div></div>"
+           (str out)))))

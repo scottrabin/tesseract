@@ -69,7 +69,9 @@
                   `(~'-will-mount ~@spec)])
                (when-let [spec (:did-mount spec-map)]
                  [`IDidMount
-                  `(~'-did-mount ~@spec)])]]
+                  `(~'-did-mount ~@spec)])
+               ['Object
+                `(~'toString [this#] (str (-render this#)))]]]
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state]
          ~@(apply concat impls))
