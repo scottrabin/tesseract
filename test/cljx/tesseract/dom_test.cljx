@@ -18,6 +18,9 @@
   (testing "Strings"
     (is (attr= "attribute-value"
                (dom/to-attr "attribute-value"))))
+  (testing "Numbers"
+    (is (= "1" (dom/to-attr 1))
+        (= "2.31" (dom/to-attr 2.31))))
   (testing "Lists"
     (is (attr= "first second third"
                (dom/to-attr (list :first "second" "third")))))

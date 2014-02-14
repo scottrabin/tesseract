@@ -41,7 +41,10 @@
 
   #+clj clojure.lang.PersistentTreeSet #+cljs cljs.core/PersistentTreeSet
   (to-attr [this]
-    (to-attr (clojure.core/map to-attr this))))
+    (to-attr (clojure.core/map to-attr this)))
+
+  #+clj java.lang.Number #+cljs number
+  (to-attr [this] (str this)))
 
 (def HTML_ATTR_ESCAPE {\< "&lt;"
                        \> "&gt;"
