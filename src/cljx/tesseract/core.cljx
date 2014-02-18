@@ -80,7 +80,7 @@
         not-found? (nil? canon-component)
         component (or canon-component component)
         next-component (next-state-fn component)]
-    (if (c/should-update? component next-component)
+    (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
       (let [root-component (-> root-component
                                (assoc-component path next-component)

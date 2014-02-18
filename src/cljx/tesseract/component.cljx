@@ -5,8 +5,8 @@
                    [tesseract.mount :as mount]
                    [clojure.set]))
 
-(defprotocol IShouldUpdate ;; TODO rename IShouldRender
-  (-should-update? [this next-component]))
+(defprotocol IShouldRender
+  (-should-render? [this next-component]))
 
 (defprotocol IWillMount
   (-will-mount! [this]))
@@ -47,11 +47,11 @@
   [component]
   (::cursor (meta component)))
 
-(defn should-update? [current-component next-component]
+(defn should-render? [current-component next-component]
   (and (= (type current-component) (type next-component))
-       (-should-update? current-component next-component)))
+       (-should-render? current-component next-component)))
 
-(defn default-should-update? [this next-component]
+(defn default-should-render? [this next-component]
   (or
     (not= (:attrs this) (:attrs next-component))
     (not= (:state this) (:state next-component))))
@@ -130,11 +130,11 @@
         impls [[`IComponent
                 `(~'-build [this# cursor#] (build-component this# cursor#))
                 `(~'-render ~@(:render spec-map))]
-               [`IShouldUpdate
-                (if-let [spec (:should-update? spec-map)]
-                  `(~'-should-update? ~@spec)
-                  `(~'-should-update? [this# next-component#]
-                                      (default-should-update? this# next-component#)))]
+               [`IShouldRender
+                (if-let [spec (:should-render? spec-map)]
+                  `(~'-should-render? ~@spec)
+                  `(~'-should-render? [this# next-component#]
+                                      (default-should-render? this# next-component#)))]
                ['tesseract.mount/IMount
                 `(~'-mount! [this# cursor#] (mount-component! this# cursor#))]
                (when-let [spec (:will-update spec-map)]
