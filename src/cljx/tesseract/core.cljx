@@ -98,12 +98,14 @@
 #+cljs
 (defn set-state!
   [component state]
-  (q/enqueue! next-state-queue [component #(assoc % :state state)]))
+  (q/enqueue! next-state-queue
+              [component #(assoc % :state state)]))
 
 #+cljs
 (defn update-state!
   [component f & args]
-  (q/enqueue! next-state-queue [component #(apply update-in % [:state] f args)]))
+  (q/enqueue! next-state-queue
+              [component #(assoc % :state (apply f (:state %) args))]))
 
 #+cljs
 (defn unmount-component!

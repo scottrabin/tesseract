@@ -20,13 +20,14 @@
                      (Comment {:author author} text)))))
 
 (defcomponent CommentBox
+  (initial-state {:comments []})
   (will-mount! [this]
-              (core/set-state! this
-                               {:comments [{:author "Logan Linn"
-                                            :text "This is one comment"}
-                                           {:author "Scott Rabin"
-                                            :text "This is *another* comment"}]})
-              this)
+               (core/update-state! this update-in [:comments] concat
+                                   [{:author "Logan Linn"
+                                     :text "This is one comment"}
+                                    {:author "Scott Rabin"
+                                     :text "This is *another* comment"}])
+               this)
   (render [{:keys [state] :as this}]
           (dom/div {:class :comment-box}
                    (dom/h1 {} "Comments")
