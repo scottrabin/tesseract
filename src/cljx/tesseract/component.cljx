@@ -5,6 +5,10 @@
                    [tesseract.mount :as mount]
                    [clojure.set]))
 
+(defprotocol IComponent
+  (-build [this cursor])
+  (-render [this]))
+
 (defprotocol IShouldRender
   "Returns boolean. Invoked before rendering when new attrs or state is
   recieved. This method is not called for the initial render. Use this
@@ -41,10 +45,6 @@
   initial render. Use this as an opportunity to operate on the DOM when the
   component has been built."
   (-did-build! [this prev-component container]))
-
-(defprotocol IComponent
-  (-build [this cursor])
-  (-render [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
