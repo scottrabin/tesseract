@@ -6,26 +6,41 @@
                    [clojure.set]))
 
 (defprotocol IShouldRender
+  "Returns boolean. Invoked before rendering when new attrs or state is
+  recieved. This method is not called for the initial render. Use this
+  opportunity to return false when you're certain the transition to new attrs
+  and state will not require re-render."
   (-should-render? [this next-component]))
 
 (defprotocol IWillMount
+  "Returns component, with potentially modified state. Invoked once, immediately
+  before initial rendering occurs. Calling set-state! is allowed in this method,
+  but will cause an separate render."
   (-will-mount! [this]))
 
 (defprotocol IDidMount
+  "Invoked immediately after initial rendering occurs and component has a DOM
+  representation in container."
   (-did-mount! [this container]))
 
 (defprotocol IWillUnmount
+  "Invoked immediately before a component is unmounted from the DOM. Perform
+  any necessary cleanup in this method, such as invalidating timers or cleaning
+  up any DOM elements that were created with IWillMount."
   (-will-unmount! [this]))
 
-(defprotocol IWillUpdate
+(defprotocol IWillBuild
   "Invoked immediately before rendering when new attrs or state are being
   received. This method is not called for the initial render. Use this as an
-  opportunity to perform preparation before an update occurs.
-  Should not update state."
-  (-will-update [this next-component]))
+  opportunity to perform preparation before an build occurs.
+  Should not modify state."
+  (-will-build! [this next-component]))
 
-(defprotocol IDidUpdate
-  (-did-update [this prev-component container]))
+(defprotocol IDidBuild
+  "Invoked immediately after building occurs. This method is not called for
+  initial render. Use this as an opportunity to operate on the DOM when the
+  component has been built."
+  (-did-build! [this prev-component container]))
 
 (defprotocol IComponent
   (-build [this cursor])
@@ -38,6 +53,27 @@
 (defn render-str [component] (str (-render component)))
 
 (defn build [component cursor] (-build component cursor))
+
+(defn will-mount! [component]
+  (if (satisfies? IWillMount component)
+    (-will-mount! component) ;; TODO probably needs try-catch
+    component))
+
+(defn did-mount! [component container]
+  (when (satisfies? IDidMount component)
+    (-did-mount! component container)))
+
+(defn will-unmount! [component]
+  (when (satisfies? IWillUnmount component)
+    (-will-unmount! component)))
+
+(defn will-build! [component next-component]
+  (when (satisfies? IWillBuild component)
+    (-will-build! component next-component)))
+
+(defn did-build! [component prev-component container]
+  (when (satisfies? IDidBuild component)
+    (-did-build! component prev-component container)))
 
 (defn assoc-cursor
   [component cursor]
@@ -104,11 +140,6 @@
         (assoc-cursor cursor)
         (assoc :children [child]))))
 
-(defn will-mount! [component]
-  (if (satisfies? IWillMount component)
-    (-will-mount! component)
-    component))
-
 #+cljs
 (defn mount-component!
   [component cursor]
@@ -137,12 +168,12 @@
                                       (default-should-render? this# next-component#)))]
                ['tesseract.mount/IMount
                 `(~'-mount! [this# cursor#] (mount-component! this# cursor#))]
-               (when-let [spec (:will-update spec-map)]
-                 [`IWillUpdate
-                  `(~'-will-update ~@spec)])
-               (when-let [spec (:did-update spec-map)]
-                 [`IDidUpdate
-                  `(~'-did-update ~@spec)])
+               (when-let [spec (:will-build! spec-map)]
+                 [`IWillBuild
+                  `(~'-will-build! ~@spec)])
+               (when-let [spec (:did-build! spec-map)]
+                 [`IDidBuild
+                  `(~'-did-build! ~@spec)])
                (when-let [spec (:will-mount! spec-map)]
                  [`IWillMount
                   `(~'-will-mount! ~@spec)])

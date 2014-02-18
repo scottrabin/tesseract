@@ -114,8 +114,7 @@
      (unmount-component! component container)))
   ([component container]
    (when-let [id (mount/root-id container)]
-     (when (satisfies? c/IWillUnmount component)
-       (c/-will-unmount component)) ;; TODO probably needs try/catch?
+     (c/will-unmount! component)
      (mount/unregister-root-id! mount-env id)
      (empty-node! container)
      true)))
@@ -140,7 +139,8 @@
         existing-component (mount/component-by-root-id mount-env id)]
     (if (and existing-component
              (= (type existing-component) (type component)))
-      (c/update existing-component component container)
+      (throw (js/Error. "Replacing component not implemented"))
+      ;(c/update existing-component component container)
       (do
         (when existing-component
           (unmount-component! existing-component container))

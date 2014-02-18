@@ -7,8 +7,8 @@
             [tesseract.dom :as dom]))
 
 (defcomponent NumList
-  (will-update [this other])
-  (did-update [this other container])
+  (will-build! [this other])
+  (did-build! [this other container])
   (will-mount! [this] this)
   (did-mount! [this container])
   (render [component]
@@ -22,8 +22,8 @@
 (deftest satisfies-protocols
   (let [c (NumList {})]
     (is (satisfies? component/IComponent c))
-    (is (satisfies? component/IWillUpdate c))
-    (is (satisfies? component/IDidUpdate c))
+    (is (satisfies? component/IWillBuild c))
+    (is (satisfies? component/IDidBuild c))
     (is (satisfies? component/IWillMount c))
     (is (satisfies? component/IDidMount c))))
 
