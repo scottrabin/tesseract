@@ -9,8 +9,8 @@
 (defcomponent NumList
   (will-update [this other])
   (did-update [this other container])
-  (will-mount [this])
-  (did-mount [this container])
+  (will-mount! [this] this)
+  (did-mount! [this container])
   (render [component]
     (dom/ul {:class :test-component}
             (for [i (range 10)]
@@ -29,13 +29,13 @@
 
 (deftest test-render
   (let [component (NumList {})
-        out (core/render component)]
+        out (component/render component)]
     (is (= out (dom/ul {:class :test-component}
                        (for [i (range 10)]
                          (dom/li {} (str "Number " i))))))))
-(deftest test-attach
+(deftest test-attach!
   (let [c (NumList {})]
-    (core/attach c js/document.body)
+    (core/attach! c js/document.body)
     (is (= js/document.body.children.length 1))
     (is (= js/document.body.firstChild.nodeName "UL"))
     (is (= js/document.body.firstChild.children.length 10))
@@ -57,7 +57,7 @@
 
 (deftest test-comment-list
   (let [comment-list (CommentList {})
-        out (core/render comment-list)]
+        out (component/render comment-list)]
     (is (= :div (:tag out)))
     (is (= :comment-list (-> out :attrs :class)))
     (is (= 2 (count (:children out))))

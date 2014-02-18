@@ -1,18 +1,21 @@
 (ns tesseract.component
-  (:require [tesseract.dom :as dom]
-            [clojure.set]))
+  #+clj (:require [tesseract.dom :as dom]
+                  [clojure.set])
+  #+cljs (:require [tesseract.dom :as dom]
+                   [tesseract.mount :as mount]
+                   [clojure.set]))
 
-(defprotocol IShouldUpdate
+(defprotocol IShouldUpdate ;; TODO rename IShouldRender
   (-should-update? [this next-component]))
 
 (defprotocol IWillMount
-  (-will-mount [this]))
+  (-will-mount! [this]))
 
 (defprotocol IDidMount
-  (-did-mount [this container]))
+  (-did-mount! [this container]))
 
 (defprotocol IWillUnmount
-  (-will-unmount [this]))
+  (-will-unmount! [this]))
 
 (defprotocol IWillUpdate
   "Invoked immediately before rendering when new attrs or state are being
@@ -25,25 +28,33 @@
   (-did-update [this prev-component container]))
 
 (defprotocol IComponent
-  (-update [this next-component])
+  (-build [this cursor])
   (-render [this]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn render [component] (-render component))
+
+(defn render-str [component] (str (-render component)))
+
+(defn build [component cursor] (-build component cursor))
+
+(defn assoc-cursor
+  [component cursor]
+  (vary-meta component assoc ::cursor cursor))
+
+(defn get-cursor
+  [component]
+  (::cursor (meta component)))
 
 (defn should-update? [current-component next-component]
   (and (= (type current-component) (type next-component))
        (-should-update? current-component next-component)))
 
 (defn default-should-update? [this next-component]
-  (and
-    (= (:attrs this) (:attrs next-component))
-    (= (:state this) (:state next-component))))
-
-(defn update [component next-component container]
-  (when (should-update? component next-component)
-    (when (satisfies? IWillUpdate component)
-      (-will-update component next-component))
-    (-update component next-component)
-    (when (satisfies? IDidUpdate next-component)
-      (-did-update next-component component container))))
+  (or
+    (not= (:attrs this) (:attrs next-component))
+    (not= (:state this) (:state next-component))))
 
 (defn- map-key-diff
   "Returns tuple of [common-keys added-keys removed-keys]"
@@ -85,6 +96,30 @@
               nil
               =ks))))
 
+(defn build-component
+  "Returns next-component after rendering it an any of its children"
+  [component cursor]
+  (let [child (build (render component) (conj cursor 0))]
+    (-> component
+        (assoc-cursor cursor)
+        (assoc :children [child]))))
+
+(defn will-mount! [component]
+  (if (satisfies? IWillMount component)
+    (-will-mount! component)
+    component))
+
+#+cljs
+(defn mount-component!
+  [component cursor]
+  (let [component (-> component
+                      (assoc-cursor cursor)
+                      (will-mount!))
+        child (mount/-mount! (render component) (conj cursor 0))
+        mounted (assoc component :children [child])]
+    ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component))
+    mounted))
+
 #+clj
 (defn emit-defcomponent
   "Emits forms to define a record and convenience constructor for components"
@@ -93,27 +128,32 @@
     (throw (IllegalArgumentException. "defcomponent requires render to be defined")))
   (let [rec-name (symbol (str component-name "Component"))
         impls [[`IComponent
-                `(~'-update [this# next-component#])
+                `(~'-build [this# cursor#] (build-component this# cursor#))
                 `(~'-render ~@(:render spec-map))]
                [`IShouldUpdate
                 (if-let [spec (:should-update? spec-map)]
                   `(~'-should-update? ~@spec)
                   `(~'-should-update? [this# next-component#]
                                       (default-should-update? this# next-component#)))]
+               ['tesseract.mount/IMount
+                `(~'-mount! [this# cursor#] (mount-component! this# cursor#))]
                (when-let [spec (:will-update spec-map)]
                  [`IWillUpdate
                   `(~'-will-update ~@spec)])
                (when-let [spec (:did-update spec-map)]
                  [`IDidUpdate
                   `(~'-did-update ~@spec)])
-               (when-let [spec (:will-mount spec-map)]
+               (when-let [spec (:will-mount! spec-map)]
                  [`IWillMount
-                  `(~'-will-mount ~@spec)])
-               (when-let [spec (:did-mount spec-map)]
+                  `(~'-will-mount! ~@spec)])
+               (when-let [spec (:did-mount! spec-map)]
                  [`IDidMount
-                  `(~'-did-mount ~@spec)])
+                  `(~'-did-mount! ~@spec)])
+               (when-let [spec (:will-unmount spec-map)]
+                 [`IWillUnmount
+                  `(~'-will-unmount! ~@spec)])
                ['Object
-                `(~'toString [this#] (str (-render this#)))]]]
+                `(~'toString [this#] (render-str this#))]]]
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state]
          ~@(apply concat impls))
