@@ -4,7 +4,7 @@
                    [tesseract.mount :as mount]))
 
 (defprotocol IComponent
-  (-build [this cursor])
+  (-build [this prev-component cursor])
   (-render [this]))
 
 (defprotocol IShouldRender
@@ -50,7 +50,8 @@
 
 (defn render-str [component] (str (-render component)))
 
-(defn build [component cursor] (-build component cursor))
+(defn build [component prev-component cursor]
+  (-build component prev-component cursor))
 
 (defn will-mount! [component]
   (if (satisfies? IWillMount component)
@@ -92,11 +93,17 @@
 
 (defn build-component
   "Returns next-component after rendering it an any of its children"
-  [component cursor]
-  (let [child (build (render component) (conj cursor 0))]
-    (-> component
-        (assoc-cursor cursor)
-        (assoc :children [child]))))
+  [component prev-component cursor]
+  (when prev-component
+    (will-build! prev-component component))
+  (let [child (build (render component)
+                     (when prev-component (-> prev-component :children first))
+                     (conj cursor 0))
+        built (-> component
+                  (assoc-cursor cursor)
+                  (assoc :children [child]))]
+    ;; TODO (did-build! built component container)
+    built))
 
 #+cljs
 (defn mount-component!
@@ -117,7 +124,8 @@
     (throw (IllegalArgumentException. "defcomponent requires render to be defined")))
   (let [rec-name (symbol (str component-name "Component"))
         impls [[`IComponent
-                `(~'-build [this# cursor#] (build-component this# cursor#))
+                `(~'-build [this# prev# cursor#]
+                           (build-component this# prev# cursor#))
                 `(~'-render ~@(:render spec-map))]
                [`IShouldRender
                 (if-let [spec (:should-render? spec-map)]

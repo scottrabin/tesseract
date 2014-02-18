@@ -22,8 +22,11 @@
 (extend-protocol c/IComponent
   dom/Element
   (-render [this] this)
-  (-build [this cursor]
-    (let [children (map-indexed #(c/build %2 (conj cursor %1))
+  (-build [this prev-component cursor]
+    (let [prev-children (:children prev-component)
+          children (map-indexed #(c/build %2
+                                          (get prev-children %1)
+                                          (conj cursor %1))
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -31,11 +34,11 @@
 
   string
   (-render [this] this)
-  (-build [this cursor] this)
+  (-build [this _ cursor] this)
 
   number
   (-render [this] this)
-  (-build [this cursor] this))
+  (-build [this _ cursor] this))
 
 #+cljs
 (extend-protocol mount/IMount
@@ -84,7 +87,7 @@
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
       (let [root-component (-> root-component
                                (assoc-component path next-component)
-                               (c/build [root-id]))]
+                               (c/build root-component [root-id]))]
         (set! (.-innerHTML container) (str root-component))
         (mount/register-component! mount-env root-component root-id)))))
 
