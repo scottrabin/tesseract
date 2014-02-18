@@ -1,9 +1,7 @@
 (ns tesseract.component
-  #+clj (:require [tesseract.dom :as dom]
-                  [clojure.set])
+  #+clj (:require [tesseract.dom :as dom])
   #+cljs (:require [tesseract.dom :as dom]
-                   [tesseract.mount :as mount]
-                   [clojure.set]))
+                   [tesseract.mount :as mount]))
 
 (defprotocol IComponent
   (-build [this cursor])

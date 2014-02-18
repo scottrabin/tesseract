@@ -1,5 +1,6 @@
 (ns tesseract.attrs
-  (:require [tesseract.dom :as dom]))
+  (:require [tesseract.dom :as dom]
+            [clojure.set]))
 
 (defn- map-key-diff
   "Returns tuple of [common-keys added-keys removed-keys]"
