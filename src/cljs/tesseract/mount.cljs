@@ -2,7 +2,7 @@
   "Handles mounting components into and out of env, a map ref")
 
 (defprotocol IMount
-  (-mount! [component cursor])
+  (-mount! [component cursor root-node])
   ;(-unmount! [component])
   )
 

@@ -23,7 +23,7 @@
 (defprotocol IDidMount
   "Invoked immediately after initial rendering occurs and component has a DOM
   representation in container."
-  (-did-mount! [this container]))
+  (-did-mount! [this root-node]))
 
 (defprotocol IWillUnmount
   "Invoked immediately before a component is unmounted from the DOM. Perform
@@ -42,7 +42,7 @@
   "Invoked immediately after building occurs. This method is not called for
   initial render. Use this as an opportunity to operate on the DOM when the
   component has been built."
-  (-did-build! [this prev-component container]))
+  (-did-build! [this prev-component root-node]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -58,9 +58,9 @@
     (-will-mount! component) ;; TODO probably needs try-catch
     component))
 
-(defn did-mount! [component container]
+(defn did-mount! [component root-node]
   (when (satisfies? IDidMount component)
-    (-did-mount! component container)))
+    (-did-mount! component root-node)))
 
 (defn will-unmount! [component]
   (when (satisfies? IWillUnmount component)
@@ -70,9 +70,9 @@
   (when (satisfies? IWillBuild component)
     (-will-build! component next-component)))
 
-(defn did-build! [component prev-component container]
+(defn did-build! [component prev-component root-node]
   (when (satisfies? IDidBuild component)
-    (-did-build! component prev-component container)))
+    (-did-build! component prev-component root-node)))
 
 (defn assoc-cursor
   [component cursor]
@@ -102,18 +102,18 @@
         built (-> component
                   (assoc-cursor cursor)
                   (assoc :children [child]))]
-    ;; TODO (did-build! built component container)
+    ;; TODO (did-build! built component root-node)
     built))
 
 #+cljs
 (defn mount-component!
-  [component cursor]
+  [component cursor root-node]
   (let [component (-> component
                       (assoc-cursor cursor)
                       (will-mount!))
-        child (mount/-mount! (render component) (conj cursor 0))
+        child (mount/-mount! (render component) (conj cursor 0) nil)
         mounted (assoc component :children [child])]
-    ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component))
+    ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component root-node))
     mounted))
 
 #+clj
@@ -133,7 +133,8 @@
                   `(~'-should-render? [this# next-component#]
                                       (default-should-render? this# next-component#)))]
                ['tesseract.mount/IMount
-                `(~'-mount! [this# cursor#] (mount-component! this# cursor#))]
+                `(~'-mount! [this# cursor# root-node#]
+                            (mount-component! this# cursor# root-node#))]
                (when-let [spec (:will-build! spec-map)]
                  [`IWillBuild
                   `(~'-will-build! ~@spec)])

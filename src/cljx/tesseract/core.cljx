@@ -43,17 +43,17 @@
 #+cljs
 (extend-protocol mount/IMount
   dom/Element
-  (-mount! [this cursor]
-    (let [children (map-indexed #(mount/-mount! %2 (conj cursor %1))
+  (-mount! [this cursor root-node]
+    (let [children (map-indexed #(mount/-mount! %2 (conj cursor %1) nil)
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
           (assoc :children (vec children)))))
   string
-  (-mount! [this cursor] this)
+  (-mount! [this _ _] this)
 
   number
-  (-mount! [this cursor] this))
+  (-mount! [this _ _] this))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -133,10 +133,6 @@
           container (mount/container-by-root-id mount-env id)]
       (unmount-component! component container))))
 
-
-#+cljs
-(defn mount-component! [component cursor] (mount/-mount! component cursor))
-
 #+cljs
 (defn mount-into-container!
   [component container]
@@ -150,7 +146,7 @@
         (when existing-component
           (unmount-component! existing-component container))
 
-        (let [root-component (mount-component! component [id])]
+        (let [root-component (mount/-mount! component [id] container)]
           (mount/register-component! mount-env root-component id)
           (mount/register-container! mount-env container id)
 
