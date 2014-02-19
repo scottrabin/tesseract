@@ -6,3 +6,7 @@
 *   Support something like React's `key` attribute to intelligently re-order children
 
 ## Life Cycle
+
+## General
+
+*   ADD macros for consistent clj/cljs logging API
