@@ -4,8 +4,12 @@
 
 (tesseract/defcomponent ExampleApplication
   (render [{attrs :attrs :as component}]
-          (.log js/console "Rendering...")
-          (dom/div {} (str "Elapsed: " (:elapsed attrs)))))
+          (let [dsec (Math/round (/ (:elapsed attrs) 100))
+                seconds (str (/ dsec 10)
+                             (when (zero? (mod dsec 10)) ".0"))
+                message (str "Tesseract has successfully been running for "
+                             seconds " seconds.")]
+            (dom/div {} message))))
 
 (set!
   (.-onload js/window)
@@ -15,4 +19,6 @@
           tick #(tesseract/mount-into-container!
                   (ExampleApplication {:elapsed (- (.getTime (js/Date.)) start)})
                   container)]
-      (.setInterval js/window tick 500))))
+
+      (.setInterval js/window tick 50))))
+

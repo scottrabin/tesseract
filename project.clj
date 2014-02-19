@@ -45,5 +45,5 @@
                {:source-paths ["src/cljs" "target/classes" "examples/basic/src"]
                 :compiler {:output-to "examples/basic/main.js"
                            :output-dir "examples/basic/out"
-                           ;:source-map true
+                           :source-map true
                            :optimizations :none}}}})

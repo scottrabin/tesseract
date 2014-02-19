@@ -69,9 +69,8 @@
     component))
 
 #+cljs
-(defn tick-state! [component next-state-fn]
-  (let [cursor (c/get-cursor component)
-        [root-id & path] cursor
+(defn tick-state! [component next-state-fn cursor]
+  (let [[root-id & path] cursor
         container (mount/container-by-root-id mount-env root-id)
         root-component (mount/component-by-root-id mount-env root-id)
         canon-component (get-component root-component path)
@@ -90,7 +89,7 @@
 (defn flush-next-state! []
   ;; TODO utilize mount depth (ie cursor length) to update efficiently
   (when-let [[component next-state-fn] (q/dequeue! next-state-queue)]
-    (tick-state! component next-state-fn)
+    (tick-state! component next-state-fn (c/get-cursor component))
     (recur)))
 
 #+cljs
@@ -127,6 +126,10 @@
     (let [component (mount/component-by-root-id mount-env id)
           container (mount/container-by-root-id mount-env id)]
       (unmount-component! component container))))
+#+cljs
+(defn- replace-component!
+  [component new-component id container]
+  (tick-state! component (fn [] new-component) [id]))
 
 #+cljs
 (defn mount-into-container!
@@ -135,12 +138,12 @@
         existing-component (mount/component-by-root-id mount-env id)]
     (if (and existing-component
              (= (type existing-component) (type component)))
-      (throw (js/Error. "Replacing component not implemented"))
-      ;(c/update existing-component component container)
+      (replace-component! existing-component component id container)
       (do
+        ;; Unmount unmatching component
         (when existing-component
           (unmount-component! existing-component container))
-
+        ;; Mount
         (let [root-component (c/mount! component container [id])]
           (mount/register-component! mount-env root-component id)
           (mount/register-container! mount-env container id)
