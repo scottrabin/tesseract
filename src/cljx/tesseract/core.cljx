@@ -22,8 +22,8 @@
 (extend-protocol c/IComponent
   dom/Element
   (-render [this] this)
-  (-mount! [this cursor _]
-    (let [children (map-indexed #(c/mount! %2 (conj cursor %1) nil)
+  (-mount! [this _ cursor]
+    (let [children (map-indexed #(c/mount! %2 nil (conj cursor %1))
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -34,7 +34,7 @@
                                   (let [child-cursor (conj cursor idx)]
                                     (if-let [prev-child (get prev-children idx)]
                                       (c/build! child prev-child child-cursor)
-                                      (c/mount! child child-cursor nil))))
+                                      (c/mount! child nil child-cursor))))
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -141,7 +141,7 @@
         (when existing-component
           (unmount-component! existing-component container))
 
-        (let [root-component (c/mount! component [id] container)]
+        (let [root-component (c/mount! component container [id])]
           (mount/register-component! mount-env root-component id)
           (mount/register-container! mount-env container id)
 

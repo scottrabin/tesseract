@@ -3,7 +3,7 @@
 
 (defprotocol IComponent
   (-render [this])
-  (-mount! [component cursor root-node])
+  (-mount! [component root-node cursor])
   (-build! [this prev-component cursor]))
 
 (defprotocol IShouldRender
@@ -50,8 +50,8 @@
 
 (defn render-str [component] (str (-render component)))
 
-(defn mount! [component cursor root-node]
-  (-mount! component cursor root-node))
+(defn mount! [component root-node cursor]
+  (-mount! component root-node cursor))
 
 (defn build! [component prev-component cursor]
   (-build! component prev-component cursor))
@@ -122,11 +122,11 @@
   [component cursor]
   (let [child (render component)
         child-cursor (conj cursor 0)]
-    (mount! child child-cursor nil)))
+    (mount! child nil child-cursor)))
 
 #+cljs
 (defn mount-component!
-  [component cursor root-node]
+  [component root-node cursor]
   (let [component (-> component
                       (assoc-cursor cursor)
                       (will-mount!))
@@ -144,8 +144,8 @@
   (let [rec-name (symbol (str component-name "Component"))
         impls [[`IComponent
                 `(~'-render ~@(:render spec-map))
-                `(~'-mount! [this# cursor# root-node#]
-                            (mount-component! this# cursor# root-node#))
+                `(~'-mount! [this# root-node# cursor#]
+                            (mount-component! this# root-node# cursor#))
                 `(~'-build! [this# prev# cursor#]
                             (build-component this# prev# cursor#))]
                [`IShouldRender
