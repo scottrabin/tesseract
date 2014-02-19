@@ -43,6 +43,9 @@
   (to-attr [this]
     (to-attr (clojure.core/map to-attr this)))
 
+  #+clj java.lang.Boolean #+cljs boolean
+  (to-attr [this] (str this))
+
   #+clj java.lang.Number #+cljs number
   (to-attr [this] (str this)))
 

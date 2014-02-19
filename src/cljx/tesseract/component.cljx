@@ -175,8 +175,9 @@
          ~@(apply concat impls))
        (defn ~component-name
          [attrs# & children#]
-         (let [state# ~(:default-state spec-map '{})]
-           (new ~rec-name
-                attrs#
-                (vec children#)
-                state#))))))
+         (new ~rec-name
+              attrs#
+              (vec children#)
+              ~(if-let [default-state (:default-state spec-map)]
+                 ~@default-state
+                 '{}))))))

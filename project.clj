@@ -46,4 +46,11 @@
                 :compiler {:output-to "examples/basic/main.js"
                            :output-dir "examples/basic/out"
                            :source-map true
-                           :optimizations :none}}}})
+                           :optimizations :none}}
+               :todomvc
+               {:source-paths ["src/cljs" "target/classes" "examples/todomvc/src"]
+                :compiler {:output-to "examples/todomvc/main.js"
+                           :output-dir "examples/todomvc/out"
+                           :source-map true
+                           :optimizations :none}}
+               }})
