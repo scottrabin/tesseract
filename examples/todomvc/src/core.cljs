@@ -7,23 +7,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn set-focus! [component _]
-  (tesseract/update-state component assoc-in [:state :has-focus] true))
+  (tesseract/update-state component assoc-in [:state :focused?] true))
 
 (defn remove-focus! [component _]
-  (tesseract/update-state component assoc-in [:state :has-focus] false))
+  (tesseract/update-state component assoc-in [:state :focused?] false))
 
 (defn update [{{:keys [update-todo item refs]} :attrs :as component} _]
   (update-todo item {:description (.-value (:description refs))
                      :done? (.-value (:completed refs))}))
 
 (tesseract/defcomponent Todo
-  (default-state
-    {:has-focus false})
+  (default-state {:focused? false})
   (render [{:keys [attrs state] :as component}]
           (let [{:keys [description done?]} (attrs :item)]
             (dom/li
               {:class {:todo true
-                       :focused (:has-focus state)
+                       :focused (:focused? state)
                        :complete done?}}
               (dom/input (cond-> {:type :checkbox
                                   ;:ref :completed
