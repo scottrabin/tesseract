@@ -10,3 +10,4 @@
 ## General
 
 *   ADD macros for consistent clj/cljs logging API
+*   ADD alias to convenience constructor that includes dot suffix
