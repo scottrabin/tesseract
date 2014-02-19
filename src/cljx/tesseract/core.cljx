@@ -24,9 +24,11 @@
   (-render [this] this)
   (-build [this prev-component cursor]
     (let [prev-children (:children prev-component)
-          children (map-indexed #(c/build %2
-                                          (get prev-children %1)
-                                          (conj cursor %1))
+          children (map-indexed (fn [idx child]
+                                  (let [child-cursor (conj cursor idx)]
+                                    (if-let [prev-child (get prev-children idx)]
+                                      (c/build child prev-child child-cursor)
+                                      (mount/mount! child child-cursor nil))))
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -43,8 +45,8 @@
 #+cljs
 (extend-protocol mount/IMount
   dom/Element
-  (-mount! [this cursor root-node]
-    (let [children (map-indexed #(mount/-mount! %2 (conj cursor %1) nil)
+  (-mount! [this cursor _]
+    (let [children (map-indexed #(mount/mount! %2 (conj cursor %1) nil)
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -146,7 +148,7 @@
         (when existing-component
           (unmount-component! existing-component container))
 
-        (let [root-component (mount/-mount! component [id] container)]
+        (let [root-component (mount/mount! component [id] container)]
           (mount/register-component! mount-env root-component id)
           (mount/register-container! mount-env container id)
 

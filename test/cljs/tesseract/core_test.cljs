@@ -7,10 +7,10 @@
             [tesseract.dom :as dom]))
 
 (defcomponent NumList
-  (will-build! [this other])
-  (did-build! [this other container])
+  (will-build! [this next-component])
+  (did-build! [this prev-component root-node])
   (will-mount! [this] this)
-  (did-mount! [this container])
+  (did-mount! [this root-node])
   (render [component]
     (dom/ul {:class :test-component}
             (for [i (range 10)]

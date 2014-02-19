@@ -52,3 +52,6 @@
   (swap! env assoc-in [:components id] component))
 
 (defn root-ids [env] (keys (:components @env)))
+
+(defn mount! [component cursor root-node]
+  (-mount! component cursor root-node))

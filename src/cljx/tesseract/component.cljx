@@ -36,6 +36,7 @@
   received. This method is not called for the initial render. Use this as an
   opportunity to perform preparation before an build occurs.
   Should not modify state."
+  ;; TODO enforce set-state!/update-state! isn't called within this function
   (-will-build! [this next-component]))
 
 (defprotocol IDidBuild
@@ -60,6 +61,7 @@
 
 (defn did-mount! [component root-node]
   (when (satisfies? IDidMount component)
+    ;; TODO this should be enqueued
     (-did-mount! component root-node)))
 
 (defn will-unmount! [component]
@@ -72,6 +74,7 @@
 
 (defn did-build! [component prev-component root-node]
   (when (satisfies? IDidBuild component)
+    ;; TODO this should be enqueued
     (-did-build! component prev-component root-node)))
 
 (defn assoc-cursor
@@ -91,14 +94,20 @@
     (not= (:attrs this) (:attrs next-component))
     (not= (:state this) (:state next-component))))
 
+(defn- build-child
+  "Renders a component, builds the child component, then returns it"
+  [component prev-component cursor]
+  (let [child (render component)
+        child-cursor (conj cursor 0)
+        prev-child (-> prev-component :children first)]
+    (build child prev-child child-cursor)))
+
 (defn build-component
   "Returns next-component after rendering it an any of its children"
   [component prev-component cursor]
   (when prev-component
     (will-build! prev-component component))
-  (let [child (build (render component)
-                     (when prev-component (-> prev-component :children first))
-                     (conj cursor 0))
+  (let [child (build-child component prev-component cursor)
         built (-> component
                   (assoc-cursor cursor)
                   (assoc :children [child]))]
@@ -106,12 +115,20 @@
     built))
 
 #+cljs
+(defn- mount-child!
+  "Renders a component, mounts the child component, then returns it"
+  [component cursor]
+  (let [child (render component)
+        child-cursor (conj cursor 0)]
+    (mount/mount! child child-cursor nil)))
+
+#+cljs
 (defn mount-component!
   [component cursor root-node]
   (let [component (-> component
                       (assoc-cursor cursor)
                       (will-mount!))
-        child (mount/-mount! (render component) (conj cursor 0) nil)
+        child (mount-child! component cursor)
         mounted (assoc component :children [child])]
     ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component root-node))
     mounted))
