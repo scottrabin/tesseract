@@ -22,13 +22,19 @@
 (extend-protocol c/IComponent
   dom/Element
   (-render [this] this)
+  (-mount! [this cursor _]
+    (let [children (map-indexed #(c/mount! %2 (conj cursor %1) nil)
+                                (flatten (:children this)))]
+      (-> this
+          (c/assoc-cursor cursor)
+          (assoc :children (vec children)))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (map-indexed (fn [idx child]
                                   (let [child-cursor (conj cursor idx)]
                                     (if-let [prev-child (get prev-children idx)]
                                       (c/build! child prev-child child-cursor)
-                                      (mount/mount! child child-cursor nil))))
+                                      (c/mount! child child-cursor nil))))
                                 (flatten (:children this)))]
       (-> this
           (c/assoc-cursor cursor)
@@ -36,26 +42,13 @@
 
   string
   (-render [this] this)
+  (-mount! [this _ _] this)
   (-build! [this _ cursor] this)
 
   number
   (-render [this] this)
-  (-build! [this _ cursor] this))
-
-#+cljs
-(extend-protocol mount/IMount
-  dom/Element
-  (-mount! [this cursor _]
-    (let [children (map-indexed #(mount/mount! %2 (conj cursor %1) nil)
-                                (flatten (:children this)))]
-      (-> this
-          (c/assoc-cursor cursor)
-          (assoc :children (vec children)))))
-  string
   (-mount! [this _ _] this)
-
-  number
-  (-mount! [this _ _] this))
+  (-build! [this _ cursor] this))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -148,7 +141,7 @@
         (when existing-component
           (unmount-component! existing-component container))
 
-        (let [root-component (mount/mount! component [id] container)]
+        (let [root-component (c/mount! component [id] container)]
           (mount/register-component! mount-env root-component id)
           (mount/register-container! mount-env container id)
 

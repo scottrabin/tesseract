@@ -1,11 +1,10 @@
 (ns tesseract.component
-  #+clj (:require [tesseract.dom :as dom])
-  #+cljs (:require [tesseract.dom :as dom]
-                   [tesseract.mount :as mount]))
+  (:require [tesseract.dom :as dom]))
 
 (defprotocol IComponent
-  (-build! [this prev-component cursor])
-  (-render [this]))
+  (-render [this])
+  (-mount! [component cursor root-node])
+  (-build! [this prev-component cursor]))
 
 (defprotocol IShouldRender
   "Returns boolean. Invoked before rendering when new attrs or state is
@@ -50,6 +49,9 @@
 (defn render [component] (-render component))
 
 (defn render-str [component] (str (-render component)))
+
+(defn mount! [component cursor root-node]
+  (-mount! component cursor root-node))
 
 (defn build! [component prev-component cursor]
   (-build! component prev-component cursor))
@@ -120,7 +122,7 @@
   [component cursor]
   (let [child (render component)
         child-cursor (conj cursor 0)]
-    (mount/mount! child child-cursor nil)))
+    (mount! child child-cursor nil)))
 
 #+cljs
 (defn mount-component!
@@ -141,17 +143,16 @@
     (throw (IllegalArgumentException. "defcomponent requires render to be defined")))
   (let [rec-name (symbol (str component-name "Component"))
         impls [[`IComponent
+                `(~'-render ~@(:render spec-map))
+                `(~'-mount! [this# cursor# root-node#]
+                            (mount-component! this# cursor# root-node#))
                 `(~'-build! [this# prev# cursor#]
-                           (build-component this# prev# cursor#))
-                `(~'-render ~@(:render spec-map))]
+                            (build-component this# prev# cursor#))]
                [`IShouldRender
                 (if-let [spec (:should-render? spec-map)]
                   `(~'-should-render? ~@spec)
                   `(~'-should-render? [this# next-component#]
                                       (default-should-render? this# next-component#)))]
-               ['tesseract.mount/IMount
-                `(~'-mount! [this# cursor# root-node#]
-                            (mount-component! this# cursor# root-node#))]
                (when-let [spec (:will-build! spec-map)]
                  [`IWillBuild
                   `(~'-will-build! ~@spec)])

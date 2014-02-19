@@ -1,13 +1,6 @@
 (ns tesseract.mount
   "Handles mounting components into and out of env, a map ref")
 
-(defprotocol IMount
-  (-mount! [component cursor root-node])
-  ;(-unmount! [component])
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (def ROOT_ID_ATTR "data-tesseractid")
 (def DOCUMENT_NODE)
 
@@ -52,6 +45,3 @@
   (swap! env assoc-in [:components id] component))
 
 (defn root-ids [env] (keys (:components @env)))
-
-(defn mount! [component cursor root-node]
-  (-mount! component cursor root-node))
