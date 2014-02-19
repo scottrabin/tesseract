@@ -129,7 +129,7 @@
 #+cljs
 (defn- replace-component!
   [component new-component id container]
-  (tick-state! component (fn [] new-component) [id]))
+  (tick-state! component (fn [_] new-component) [id]))
 
 #+cljs
 (defn mount-into-container!
