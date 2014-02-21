@@ -104,7 +104,7 @@
         prev-child (-> prev-component :children first)]
     (build! child prev-child child-cursor)))
 
-(defn build-component
+(defn build-component!
   "Returns next-component after rendering it an any of its children"
   [component prev-component cursor]
   (when prev-component
@@ -147,7 +147,7 @@
                 `(~'-mount! [this# root-node# cursor#]
                             (mount-component! this# root-node# cursor#))
                 `(~'-build! [this# prev# cursor#]
-                            (build-component this# prev# cursor#))]
+                            (build-component! this# prev# cursor#))]
                [`IShouldRender
                 (if-let [spec (:should-render? spec-map)]
                   `(~'-should-render? ~@spec)
