@@ -18,24 +18,34 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO This should probably be moved to own namespace or tesseract.component
+
+#+cljs
+(defn- mount-children! [nested-children parent-cursor]
+  (map-indexed #(c/mount! %2 nil (conj parent-cursor %1))
+               (flatten nested-children)))
+
+#+cljs
+(defn- build-children! [nested-children prev-children parent-cursor]
+  (map-indexed (fn [idx child]
+                 (let [child-cursor (conj parent-cursor idx)]
+                   (if-let [prev-child (get prev-children idx)]
+                     (c/build! child prev-child child-cursor)
+                     (c/mount! child nil child-cursor))))
+               (flatten nested-children)))
+
 #+cljs
 (extend-protocol c/IComponent
   dom/Element
   (-render [this] this)
   (-mount! [this _ cursor]
-    (let [children (map-indexed #(c/mount! %2 nil (conj cursor %1))
-                                (flatten (:children this)))]
+    (let [children (mount-children! (:children this) cursor)]
       (-> this
           (c/assoc-cursor cursor)
           (assoc :children (vec children)))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
-          children (map-indexed (fn [idx child]
-                                  (let [child-cursor (conj cursor idx)]
-                                    (if-let [prev-child (get prev-children idx)]
-                                      (c/build! child prev-child child-cursor)
-                                      (c/mount! child nil child-cursor))))
-                                (flatten (:children this)))]
+          children (build-children! (:children this) prev-children cursor)]
       (-> this
           (c/assoc-cursor cursor)
           (assoc :children (vec children)))))
