@@ -6,43 +6,6 @@
             [tesseract.component :as component]
             [tesseract.dom :as dom]))
 
-(defcomponent NumList
-  (will-build! [this next-component])
-  (did-build! [this prev-component root-node])
-  (will-mount! [this] this)
-  (did-mount! [this root-node])
-  (render [component]
-    (dom/ul {:class :test-component}
-            (for [i (range 10)]
-              (dom/li {} (str "Number " i))))))
-
-(deftest defines-convenience-constructor
-  (is (ifn? NumList)))
-
-(deftest satisfies-protocols
-  (let [c (NumList {})]
-    (is (satisfies? component/IComponent c))
-    (is (satisfies? component/IWillBuild c))
-    (is (satisfies? component/IDidBuild c))
-    (is (satisfies? component/IWillMount c))
-    (is (satisfies? component/IDidMount c))))
-
-(deftest test-render
-  (let [component (NumList {})
-        out (component/render component)]
-    (is (= out (dom/ul {:class :test-component}
-                       (for [i (range 10)]
-                         (dom/li {} (str "Number " i))))))))
-(deftest test-attach!
-  (let [c (NumList {})]
-    (core/attach! c js/document.body)
-    (is (= js/document.body.children.length 1))
-    (is (= js/document.body.firstChild.nodeName "UL"))
-    (is (= js/document.body.firstChild.children.length 10))
-    (doseq [i (range 10)]
-      (is (= (.-textContent (aget js/document.body.firstChild.children i))
-             (str "Number " i))))))
-
 (defcomponent Comment
   (render [{:keys [attrs children]}]
     (dom/div {:class :comment}
@@ -50,16 +13,61 @@
              children)))
 
 (defcomponent CommentList
-  (render [component]
-    (dom/div {:class :comment-list}
-             (Comment {:author "Logan Linn"} "This is one comment")
-             (Comment {:author "Scott Rabin"} "This is *another* comment"))))
+  (render [{{:keys [comments]} :attrs}]
+          (dom/div {:class :comment-list}
+                   (for [{:keys [author text]} comments]
+                     (Comment {:author author} text)))))
 
-(deftest test-comment-list
-  (let [comment-list (CommentList {})
-        out (component/render comment-list)]
-    (is (= :div (:tag out)))
-    (is (= :comment-list (-> out :attrs :class)))
-    (is (= 2 (count (:children out))))
-    (is (= "<div class=\"comment-list\"><div class=\"comment\"><h2 class=\"comment-author\">Logan Linn</h2>This is one comment</div><div class=\"comment\"><h2 class=\"comment-author\">Scott Rabin</h2>This is *another* comment</div></div>"
-           (str out)))))
+(defcomponent CommentBox
+  (initial-state {:comments []})
+  (will-mount! [this]
+               (update-in this [:state :comments] concat
+                          [{:author "Logan Linn"
+                            :text "This is one comment"}
+                           {:author "Scott Rabin"
+                            :text "This is *another* comment"}]))
+  (render [{:keys [state] :as this}]
+          (dom/div {:class :comment-box}
+                   (dom/h1 {} "Comments")
+                   (CommentList {:comments (:comments state)}))))
+
+(deftest test-comment-box
+  (testing "Updating state in will-mount!"
+    (let [c (CommentBox {})
+          container (.createElement js/document "div")
+          container-id "test-comment-box"]
+      (.setAttribute container "id" container-id)
+      (.appendChild js/document.body container)
+      (core/mount-into-container! c container)
+      (is (= "<div class=\"comment-box\"><h1>Comments</h1><div class=\"comment-list\"><div class=\"comment\"><h2 class=\"comment-author\">Logan Linn</h2>This is one comment</div><div class=\"comment\"><h2 class=\"comment-author\">Scott Rabin</h2>This is *another* comment</div></div></div>"
+             (.-innerHTML (.getElementById js/document container-id)))))))
+
+(defcomponent CommentBox2
+  (initial-state {:comments []})
+  (will-mount! [this]
+               (core/update-state! this update-in [:comments] concat
+                                   [{:author "Logan Linn"
+                                     :text "This is one comment"}
+                                    {:author "Scott Rabin"
+                                     :text "This is *another* comment"}])
+               this)
+  (render [{:keys [state] :as this}]
+          (dom/div {:class :comment-box}
+                   (dom/h1 {} "Comments")
+                   (CommentList {:comments (:comments state)}))))
+
+(deftest test-comment-box2
+  (testing "Calling set-state! in will-mount!"
+    (let [c (CommentBox2 {})
+          container (.createElement js/document "div")
+          container-id "test-comment-box2"]
+      (.setAttribute container "id" container-id)
+      (.appendChild js/document.body container)
+      (core/mount-into-container! c container)
+      (testing "Before processing set-state!"
+        (is (= "<div class=\"comment-box\"><h1>Comments</h1><div class=\"comment-list\"></div></div>"
+               (.-innerHTML (.getElementById js/document container-id)))))
+      (core/flush-next-state!) ;; process our set-state! side-effects
+      (testing "After processing set-state!"
+        (is (= "<div class=\"comment-box\"><h1>Comments</h1><div class=\"comment-list\"><div class=\"comment\"><h2 class=\"comment-author\">Logan Linn</h2>This is one comment</div><div class=\"comment\"><h2 class=\"comment-author\">Scott Rabin</h2>This is *another* comment</div></div></div>"
+               (.-innerHTML (.getElementById js/document container-id))))))))
