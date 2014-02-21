@@ -2,6 +2,44 @@
   (:require [tesseract.dom :as dom]
             [clojure.set]))
 
+(comment
+  (def event-types
+    #{:blur
+      :click
+      :context-menu
+      :copy
+      :cut
+      :double-click
+      :drag
+      :drag-end
+      :drag-enter
+      :drag-exit
+      :drag-leave
+      :drag-over
+      :drag-start
+      :drop
+      :focus
+      :input
+      :key-down
+      :key-press
+      :key-up
+      :load
+      :error
+      :mouse-down
+      :mouse-move
+      :mouse-out
+      :mouse-over
+      :mouse-up
+      :paste
+      :reset
+      :scroll
+      :submit
+      :touch-cancel
+      :touch-end
+      :touch-move
+      :touch-start
+      :wheel}))
+
 (defn- map-key-diff
   "Returns tuple of [common-keys added-keys removed-keys]"
   [m1 m2]
@@ -41,3 +79,4 @@
                       (conj ops [:set-attr attr (get next-attrs attr)])))))
               nil
               =ks))))
+
