@@ -7,13 +7,9 @@
 #+cljs
 (def ^:private mount-env (atom {}))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn render [component] (tesseract.component.core/-render component))
-
 #+cljs
 (defn attach [component container]
-  (mount/mount-component! mount-env component container))
+  (mount/mount! mount-env component container))
 
 #+clj
 (defmacro defcomponent [component-name & spec]
