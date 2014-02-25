@@ -1,5 +1,6 @@
 (ns tesseract.mount
-  "Handles mounting components into and out of env, a map ref")
+  "Handles mounting components into and out of env, a map ref"
+  (:import [goog.ui IdGenerator]))
 
 (def ROOT_ID_ATTR "data-tesseractid")
 (def DOCUMENT_NODE)
@@ -7,9 +8,8 @@
 (defn- attr [node k] (.getAttribute node k)) ;; TODO require from somewhere else
 (defn- set-attr! [node k v] (.setAttribute node k v))
 
-;; TODO something smarter
-(def ^:private id-seq (atom 0))
-(defn create-root-id [] (str (swap! id-seq inc)))
+(defn create-root-id []
+  (.getNextUniqueId (.getInstance IdGenerator)))
 
 (defn root-element [container]
   (if (= (.-nodeType container) DOCUMENT_NODE)
