@@ -39,16 +39,16 @@
   dom/Element
   (-render [this] this)
   (-mount! [this _ cursor]
-    (let [children (mount-children! (:children this) cursor)]
+    (let [children (mount-children! (c/get-children this) cursor)]
       (-> this
           (c/assoc-cursor cursor)
-          (assoc :children (vec children)))))
+          (c/assoc-children (vec children)))))
   (-build! [this prev-component cursor]
-    (let [prev-children (:children prev-component)
-          children (build-children! (:children this) prev-children cursor)]
+    (let [prev-children (c/get-children prev-component)
+          children (build-children! (c/get-children this) prev-children cursor)]
       (-> this
           (c/assoc-cursor cursor)
-          (assoc :children (vec children)))))
+          (c/assoc-children (vec children)))))
 
   string
   (-render [this] this)
@@ -62,35 +62,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn get-component
-  "Returns component at path or nil if not found. Path is a sequence of indicies
-  in nested children collections."
-  [root-component path]
-  (if (seq path)
-    (get-in (:children root-component) (interpose :children path))
-    root-component))
-
-(defn assoc-component
-  [root-component path component]
-  (if (seq path)
-    (assoc-in root-component
-              (cons :children (interpose :children path))
-              component)
-    component))
-
 #+cljs
 (defn tick-state! [component next-state-fn cursor]
   (let [[root-id & path] cursor
         container (mount/container-by-root-id mount-env root-id)
         root-component (mount/component-by-root-id mount-env root-id)
-        canon-component (get-component root-component path)
+        canon-component (c/get-component root-component path)
         not-found? (nil? canon-component)
         component (or canon-component component)
         next-component (next-state-fn component)]
     (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
       (let [root-component (-> root-component
-                               (assoc-component path next-component)
+                               (c/assoc-component path next-component)
                                (c/build! root-component [root-id]))]
         (set! (.-innerHTML container) (str root-component))
         (mount/register-component! mount-env root-component root-id)))))

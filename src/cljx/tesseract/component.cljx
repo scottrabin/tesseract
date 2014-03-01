@@ -87,6 +87,31 @@
   [component]
   (::cursor (meta component)))
 
+(defn assoc-children
+  [component children]
+  (assoc component ::children children))
+
+(defn get-children
+  [component]
+  (::children component))
+
+(defn get-component
+  "Returns component at path or nil if not found. Path is a sequence of indicies
+  in nested children collections."
+  [root-component path]
+  (if (seq path)
+    (get-in (get-children root-component) (interpose ::children path))
+    root-component))
+
+(defn assoc-component
+  "Returns new root-component with component associated at path"
+  [root-component path component]
+  (if (seq path)
+    (assoc-in root-component
+              (cons ::children (interpose ::children path))
+              component)
+    component))
+
 (defn should-render? [current-component next-component]
   (and (= (type current-component) (type next-component))
        (-should-render? current-component next-component)))
@@ -112,7 +137,7 @@
   (let [child (build-child component prev-component cursor)
         built (-> component
                   (assoc-cursor cursor)
-                  (assoc :children [child]))]
+                  (assoc-children [child]))]
     ;; TODO (did-build! built component root-node)
     built))
 
@@ -131,7 +156,7 @@
                       (assoc-cursor cursor)
                       (will-mount!))
         child (mount-child! component cursor)
-        mounted (assoc component :children [child])]
+        mounted (assoc-children component [child])]
     ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component root-node))
     mounted))
 
