@@ -1,10 +1,12 @@
 (ns tesseract.attrs-test
   #+clj (:require [clojure.test :refer :all]
-                  [tesseract.attrs :as attrs])
+                  [tesseract.attrs :as attrs]
+                  [tesseract.dom :as dom])
   #+cljs (:require-macros [cemerick.cljs.test
                            :refer (is deftest with-test run-tests testing test-var)])
   #+cljs (:require [cemerick.cljs.test :as t]
-                   [tesseract.attrs :as attrs]))
+                   [tesseract.attrs :as attrs]
+                   [tesseract.dom :as dom]))
 
 (deftest test-attrs-diff
   (testing "no difference"
@@ -34,3 +36,8 @@
     (doseq [[prev next expected] cases]
       (is (= (set expected) (set (attrs/attrs-diff prev next)))))))
 
+(deftest test-build-attrs
+  (is (= {:class "foo bar"}
+         (attrs/build-attrs
+           (dom/div {:on-click (fn [e] nil)
+                     :class [:foo :bar]})))))

@@ -2,43 +2,42 @@
   (:require [tesseract.dom :as dom]
             [clojure.set]))
 
-(comment
-  (def event-types
-    #{:blur
-      :click
-      :context-menu
-      :copy
-      :cut
-      :double-click
-      :drag
-      :drag-end
-      :drag-enter
-      :drag-exit
-      :drag-leave
-      :drag-over
-      :drag-start
-      :drop
-      :focus
-      :input
-      :key-down
-      :key-press
-      :key-up
-      :load
-      :error
-      :mouse-down
-      :mouse-move
-      :mouse-out
-      :mouse-over
-      :mouse-up
-      :paste
-      :reset
-      :scroll
-      :submit
-      :touch-cancel
-      :touch-end
-      :touch-move
-      :touch-start
-      :wheel}))
+(def event-names
+  #{:blur
+    :click
+    :context-menu
+    :copy
+    :cut
+    :double-click
+    :drag
+    :drag-end
+    :drag-enter
+    :drag-exit
+    :drag-leave
+    :drag-over
+    :drag-start
+    :drop
+    :focus
+    :input
+    :key-down
+    :key-press
+    :key-up
+    :load
+    :error
+    :mouse-down
+    :mouse-move
+    :mouse-out
+    :mouse-over
+    :mouse-up
+    :paste
+    :reset
+    :scroll
+    :submit
+    :touch-cancel
+    :touch-end
+    :touch-move
+    :touch-start
+    :wheel})
 
 (defn- map-key-diff
   "Returns tuple of [common-keys added-keys removed-keys]"
@@ -80,3 +79,20 @@
               nil
               =ks))))
 
+(defmulti build-attr (fn [attrs component attr value] (keyword attr)) :default ::default)
+
+(defmethod build-attr ::default
+  [attrs component attr value]
+  (assoc attrs attr (dom/to-attr value)))
+
+;; on-* event attrs don't affect DOM attrs
+(doseq [event-name event-names]
+  (defmethod build-attr (keyword (str "on-" (name event-name)))
+    [attrs component attr value]
+    ;; TODO BIND
+    attrs))
+
+(defn build-attrs [component]
+  (reduce (fn [attrs [attr value]] (build-attr attrs component attr value))
+          {}
+          (:attrs component)))
