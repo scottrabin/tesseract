@@ -6,6 +6,12 @@
   (-mount! [component root-node cursor])
   (-build! [this prev-component cursor]))
 
+(defprotocol IBuiltComponent
+  (-get-child [this k])
+  (-assoc-child [this k child])
+  (-get-child-in [this path])
+  (-assoc-child-in [this path child]))
+
 (defprotocol IShouldRender
   "Returns boolean. Invoked before rendering when new attrs or state is
   recieved. This method is not called for the initial render. Use this
@@ -56,6 +62,18 @@
 (defn build! [component prev-component cursor]
   (-build! component prev-component cursor))
 
+(defn get-child [component k]
+  (-get-child component k))
+
+(defn assoc-child [component k child]
+   (-assoc-child component k child))
+
+(defn get-child-in [component path]
+  (-get-child-in component path))
+
+(defn assoc-child-in [component path child]
+  (-assoc-child-in component path child))
+
 (defn will-mount! [component]
   (if (satisfies? IWillMount component)
     (-will-mount! component) ;; TODO probably needs try-catch
@@ -87,31 +105,6 @@
   [component]
   (::cursor (meta component)))
 
-(defn assoc-children
-  [component children]
-  (assoc component ::children children))
-
-(defn get-children
-  [component]
-  (::children component))
-
-(defn get-component
-  "Returns component at path or nil if not found. Path is a sequence of indicies
-  in nested children collections."
-  [root-component path]
-  (if (seq path)
-    (get-in (get-children root-component) (interpose ::children path))
-    root-component))
-
-(defn assoc-component
-  "Returns new root-component with component associated at path"
-  [root-component path component]
-  (if (seq path)
-    (assoc-in root-component
-              (cons ::children (interpose ::children path))
-              component)
-    component))
-
 (defn should-render? [current-component next-component]
   (and (= (type current-component) (type next-component))
        (-should-render? current-component next-component)))
@@ -137,7 +130,7 @@
   (let [child (build-child component prev-component cursor)
         built (-> component
                   (assoc-cursor cursor)
-                  (assoc-children [child]))]
+                  (assoc-child 0 child))]
     ;; TODO (did-build! built component root-node)
     built))
 
@@ -156,7 +149,7 @@
                       (assoc-cursor cursor)
                       (will-mount!))
         child (mount-child! component cursor)
-        mounted (assoc-children component [child])]
+        mounted (assoc-child component 0 child)]
     ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component root-node))
     mounted))
 
@@ -173,6 +166,28 @@
                             (mount-component! this# root-node# cursor#))
                 `(~'-build! [this# prev# cursor#]
                             (build-component! this# prev# cursor#))]
+               [`IBuiltComponent
+                `(~'-get-child [this# k#] (get (::children this#) k#))
+                `(~'-assoc-child [this# k# child#]
+                                 (assoc this# ::children (assoc (::children this# []) k# child#)))
+                `(~'-get-child-in [this# path#]
+                                  (if (seq path#)
+                                    (when-let [child# (-get-child this# (first path#))]
+                                      (-get-child-in child# (rest path#)))
+                                    this#))
+                `(~'-assoc-child-in [this# [k# & ks#] child#]
+                                    (let [children# (::children this#)]
+                                      (cond
+                                        ks# (if-let [next-child# (get children# k#)]
+                                              (->> (-assoc-child-in next-child# ks# child)
+                                                   (assoc children# k#)
+                                                   (vec)
+                                                   (assoc this# ::children))
+                                              (throw (js/Error. "Failed to associate child at uninitialized path")))
+
+                                        k# (-assoc-child this# k# child#)
+
+                                        :else child#)))]
                [`IShouldRender
                 (if-let [spec (:should-render? spec-map)]
                   `(~'-should-render? ~@spec)
