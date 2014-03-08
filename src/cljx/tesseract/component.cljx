@@ -7,6 +7,7 @@
   (-build! [this prev-component cursor]))
 
 (defprotocol IBuiltComponent
+  (-get-children [this])
   (-get-child [this k])
   (-assoc-child [this k child])
   (-get-child-in [this path])
@@ -61,6 +62,9 @@
 
 (defn build! [component prev-component cursor]
   (-build! component prev-component cursor))
+
+(defn get-children [component]
+  (-get-children component))
 
 (defn get-child [component k]
   (-get-child component k))
@@ -167,6 +171,7 @@
                 `(~'-build! [this# prev# cursor#]
                             (build-component! this# prev# cursor#))]
                [`IBuiltComponent
+                `(~'-get-children [this#] (::children this#))
                 `(~'-get-child [this# k#] (get (::children this#) k#))
                 `(~'-assoc-child [this# k# child#]
                                  (assoc this# ::children (assoc (::children this# []) k# child#)))

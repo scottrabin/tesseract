@@ -63,6 +63,7 @@
 #+cljs
 (extend-protocol c/IBuiltComponent
   dom/Element
+  (-get-children [this] (:children this))
   (-get-child [this k]
     (get-in this [:children k]))
   (-assoc-child [{children :children :as this} k child]
