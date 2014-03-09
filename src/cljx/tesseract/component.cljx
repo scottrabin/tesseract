@@ -9,6 +9,7 @@
 (defprotocol IBuiltComponent
   (-get-children [this])
   (-get-child [this k])
+  (-assoc-children [this children])
   (-assoc-child [this k child])
   (-get-child-in [this path])
   (-assoc-child-in [this path child]))
@@ -75,6 +76,9 @@
 (defn get-child-in [component path]
   (-get-child-in component path))
 
+(defn assoc-children [component children]
+  (-assoc-children component children))
+
 (defn assoc-child-in [component path child]
   (-assoc-child-in component path child))
 
@@ -134,7 +138,7 @@
   (let [child (build-child component prev-component cursor)
         built (-> component
                   (assoc-cursor cursor)
-                  (assoc-child 0 child))]
+                  (assoc-children [child]))]
     ;; TODO (did-build! built component root-node)
     built))
 
@@ -153,7 +157,7 @@
                       (assoc-cursor cursor)
                       (will-mount!))
         child (mount-child! component cursor)
-        mounted (assoc-child component 0 child)]
+        mounted (assoc-children component [child])]
     ; TODO (when (satisfies? IDidMount component) (enqueue-mount-ready! component root-node))
     mounted))
 
@@ -173,20 +177,26 @@
                [`IBuiltComponent
                 `(~'-get-children [this#] (::children this#))
                 `(~'-get-child [this# k#] (get (::children this#) k#))
+                `(~'-assoc-children [this# children#]
+                                    (assoc this# ::children (if (associative? children#)
+                                                              children#
+                                                              (vec children#))))
                 `(~'-assoc-child [this# k# child#]
-                                 (assoc this# ::children (assoc (::children this# []) k# child#)))
+                                 (let [children# (::children this#)
+                                       children# (if (associative? children#) children# (vec children#))]
+                                   (assoc this# ::children (assoc children# k# child#))))
                 `(~'-get-child-in [this# path#]
                                   (if (seq path#)
                                     (when-let [child# (-get-child this# (first path#))]
                                       (-get-child-in child# (rest path#)))
                                     this#))
                 `(~'-assoc-child-in [this# [k# & ks#] child#]
-                                    (let [children# (::children this#)]
+                                    (let [children# (::children this#)
+                                          children# (if (associative? children#) children# (vec children#))]
                                       (cond
                                         ks# (if-let [next-child# (get children# k#)]
                                               (->> (-assoc-child-in next-child# ks# child)
                                                    (assoc children# k#)
-                                                   (vec)
                                                    (assoc this# ::children))
                                               (throw (js/Error. "Failed to associate child at uninitialized path")))
 

@@ -42,13 +42,13 @@
     (let [children (mount-children! (:children this) cursor)]
       (-> this
           (c/assoc-cursor cursor)
-          (assoc :children (vec children)))))
+          (c/assoc-children children))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (build-children! (:children this) prev-children cursor)]
       (-> this
           (c/assoc-cursor cursor)
-          (assoc :children (vec children)))))
+          (c/assoc-children children))))
 
   string
   (-render [this] this)
@@ -66,25 +66,28 @@
   (-get-children [this] (:children this))
   (-get-child [this k]
     (get-in this [:children k]))
+  (-assoc-children [this children]
+    (assoc this :children (if (associative? children) children (vec children))))
   (-assoc-child [{children :children :as this} k child]
-    (assoc this :children (assoc (vec children) k child)))
+    (let [children (if (associative? children) children (vec children))]
+      (assoc this :children (assoc children k child))))
   (-get-child-in [this path]
     (if (seq path)
       (when-let [child (c/-get-child this (first path))]
         (c/-get-child-in child (rest path)))
       this))
   (-assoc-child-in [{children :children :as this} [k & ks] child]
-    (cond
-      ks (if-let [next-child (get children k)]
-           (->> (c/-assoc-child-in next-child ks child)
-                (assoc children k)
-                (vec)
-                (assoc :children this))
-           (throw (js/Error. "Failed to associate child at uninitialized path")))
+    (let [children (if (associative? children) children (vec children))]
+      (cond
+        ks (if-let [next-child (get children k)]
+             (->> (c/-assoc-child-in next-child ks child)
+                  (assoc children k)
+                  (assoc :children this))
+             (throw (js/Error. "Failed to associate child at uninitialized path")))
 
-      k (c/-assoc-child this k child)
+        k (c/-assoc-child this k child)
 
-      :else child)))
+        :else child))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
