@@ -1,9 +1,11 @@
 (ns tesseract.core
   #+cljs (:require [tesseract.mount :as mount]
                    [tesseract.dom :as dom]
+                   [tesseract.cursor]
                    [tesseract.component :as c]
                    [tesseract.queue :as q])
   #+clj  (:require [tesseract.component :as c]
+                   [tesseract.cursor]
                    [tesseract.queue :as q]))
 
 #+cljs
@@ -41,13 +43,13 @@
   (-mount! [this _ cursor]
     (let [children (mount-children! (:children this) cursor)]
       (-> this
-          (c/assoc-cursor cursor)
+          (tesseract.cursor/assoc-cursor cursor)
           (c/assoc-children children))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (build-children! (:children this) prev-children cursor)]
       (-> this
-          (c/assoc-cursor cursor)
+          (tesseract.cursor/assoc-cursor cursor)
           (c/assoc-children children))))
 
   string
@@ -102,9 +104,10 @@
         next-component (next-state-fn component)]
     (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
-      (let [root-component (-> root-component
+      (let [root-cursor (tesseract.cursor/cursor root-id)
+            root-component (-> root-component
                                (c/assoc-child-in path next-component)
-                               (c/build! root-component [root-id]))]
+                               (c/build! root-component root-cursor))]
         (set! (.-innerHTML container) (str root-component))
         (mount/register-component! mount-env root-component root-id)))))
 
@@ -112,7 +115,7 @@
 (defn flush-next-state! []
   ;; TODO utilize mount depth (ie cursor length) to update efficiently
   (when-let [[component next-state-fn] (q/dequeue! next-state-queue)]
-    (tick-state! component next-state-fn (c/get-cursor component))
+    (tick-state! component next-state-fn (tesseract.cursor/get-cursor component))
     (recur)))
 
 #+cljs

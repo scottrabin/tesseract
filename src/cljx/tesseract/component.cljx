@@ -1,5 +1,6 @@
 (ns tesseract.component
-  (:require [tesseract.dom :as dom]))
+  (:require [tesseract.dom :as dom]
+            [tesseract.cursor]))
 
 (defprotocol IComponent
   (-render [this])
@@ -105,14 +106,6 @@
     ;; TODO this should be enqueued
     (-did-build! component prev-component root-node)))
 
-(defn assoc-cursor
-  [component cursor]
-  (vary-meta component assoc ::cursor cursor))
-
-(defn get-cursor
-  [component]
-  (::cursor (meta component)))
-
 (defn should-render? [current-component next-component]
   (and (= (type current-component) (type next-component))
        (-should-render? current-component next-component)))
@@ -137,7 +130,7 @@
     (will-build! prev-component component))
   (let [child (build-child component prev-component cursor)
         built (-> component
-                  (assoc-cursor cursor)
+                  (tesseract.cursor/assoc-cursor cursor)
                   (assoc-children [child]))]
     ;; TODO (did-build! built component root-node)
     built))
@@ -154,7 +147,7 @@
 (defn mount-component!
   [component root-node cursor]
   (let [component (-> component
-                      (assoc-cursor cursor)
+                      (tesseract.cursor/assoc-cursor cursor)
                       (will-mount!))
         child (mount-child! component cursor)
         mounted (assoc-children component [child])]
