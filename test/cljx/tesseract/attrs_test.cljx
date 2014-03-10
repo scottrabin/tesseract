@@ -1,11 +1,13 @@
 (ns tesseract.attrs-test
   #+clj (:require [clojure.test :refer :all]
-                  [tesseract.attrs :as attrs]
-                  [tesseract.dom :as dom])
+                  [tesseract.attrs :as attrs :include-macros true]
+                  [tesseract.dom :as dom]
+                  [tesseract.cursor])
   #+cljs (:require-macros [cemerick.cljs.test
                            :refer (is deftest with-test run-tests testing test-var)])
   #+cljs (:require [cemerick.cljs.test :as t]
                    [tesseract.attrs :as attrs]
+                   [tesseract.cursor]
                    [tesseract.dom :as dom]))
 
 (deftest test-attrs-diff
@@ -41,3 +43,22 @@
          (attrs/build-attrs
            (dom/div {:on-click (fn [e] nil)
                      :class [:foo :bar]})))))
+
+(deftest test-listener-registration
+  (let [cursor [:root-id 0 0]
+        env (atom {})
+        event-name :click
+        listener (fn [e c])
+        ks [:listeners event-name cursor]]
+    (attrs/register-listener! env event-name cursor listener)
+    (is (= listener (attrs/get-listener env event-name cursor)))
+    (attrs/unregister-listener! env event-name cursor)
+    (is (nil? (attrs/get-listener env event-name cursor)))))
+
+(deftest test-attr-env
+  (binding [attrs/*attr-env* (atom {})]
+    (let [cursor [:root-id 1]
+          component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
+          listener (fn [e c])]
+      (attrs/build-attr {} component :on-click listener)
+      (is (= listener (attrs/get-listener attrs/*attr-env* :click cursor))))))

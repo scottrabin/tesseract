@@ -1,5 +1,6 @@
 (ns tesseract.attrs
   (:require [tesseract.dom :as dom]
+            [tesseract.cursor]
             [clojure.set]))
 
 (def event-names
@@ -79,17 +80,51 @@
               nil
               =ks))))
 
-(defmulti build-attr (fn [attrs component attr value] (keyword attr)) :default ::default)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *attr-env* nil)
+
+#+clj
+(defmacro with-attr-env [env & forms]
+  `(binding [*attr-env* ~env] ~@forms))
+
+(defn register-listener! [env event-name cursor listener]
+  (swap! env assoc-in [:listeners event-name cursor] listener))
+
+(defn unregister-listener! [env event-name cursor]
+  (swap! env (fn dissoc-in [m [k & ks :as keys]]
+               (if ks
+                 (if-let [nextmap (get m k)]
+                   (let [newmap (dissoc-in nextmap ks)]
+                     (if (seq newmap)
+                       (assoc m k newmap)
+                       (dissoc m k)))
+                   m)
+                 (dissoc m k)))
+         [:listeners event-name cursor]))
+
+(defn get-listener
+  [env event-name cursor]
+  (get-in @env [:listeners event-name cursor]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmulti build-attr
+  (fn [attrs component attr value] (keyword attr))
+  :default ::default)
 
 (defmethod build-attr ::default
   [attrs component attr value]
   (assoc attrs attr (dom/to-attr value)))
 
 ;; on-* event attrs don't affect DOM attrs
+;; TODO Use macro
 (doseq [event-name event-names]
   (defmethod build-attr (keyword (str "on-" (name event-name)))
     [attrs component attr value]
-    ;; TODO BIND
+    (when *attr-env*
+      (let [cursor (tesseract.cursor/get-cursor component)]
+        (register-listener! *attr-env* event-name cursor value)))
     attrs))
 
 (defn build-attrs [component]
