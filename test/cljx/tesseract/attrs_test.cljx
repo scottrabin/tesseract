@@ -42,7 +42,8 @@
   (is (= {:class "foo bar"}
          (attrs/build-attrs
            (dom/div {:on-click (fn [e] nil)
-                     :class [:foo :bar]})))))
+                     :class [:foo :bar]})
+           nil))))
 
 (deftest test-listener-registration
   (let [cursor [:root-id 0 0]
@@ -60,5 +61,7 @@
     (let [cursor [:root-id 1]
           component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
           listener (fn [e c])]
-      (attrs/build-attr {} component :on-click listener)
-      (is (= listener (attrs/get-listener attrs/*attr-env* :click cursor))))))
+      (attrs/build-attr {} component :on-click listener nil)
+      (is (= listener (attrs/get-listener attrs/*attr-env* :click cursor)))
+      (attrs/build-attr {} component :on-click nil listener)
+      (is (nil? (attrs/get-listener attrs/*attr-env* :click cursor))))))
