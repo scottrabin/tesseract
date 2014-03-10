@@ -1,12 +1,12 @@
 (ns tesseract.attrs-test
   #+clj (:require [clojure.test :refer :all]
-                  [tesseract.attrs :as attrs :include-macros true]
+                  [tesseract.attrs :as attrs]
                   [tesseract.dom :as dom]
                   [tesseract.cursor])
   #+cljs (:require-macros [cemerick.cljs.test
                            :refer (is deftest with-test run-tests testing test-var)])
   #+cljs (:require [cemerick.cljs.test :as t]
-                   [tesseract.attrs :as attrs]
+                   [tesseract.attrs :as attrs :include-macros true]
                    [tesseract.cursor]
                    [tesseract.dom :as dom]))
 
@@ -65,3 +65,10 @@
       (is (= listener (attrs/get-listener attrs/*attr-env* :click cursor)))
       (attrs/build-attr {} component :on-click nil listener)
       (is (nil? (attrs/get-listener attrs/*attr-env* :click cursor))))))
+
+(deftest test-with-attr-env
+  (let [env (atom {})
+        prev-env attrs/*attr-env*]
+    (attrs/with-attr-env env
+      (is (= env attrs/*attr-env*)))
+    (is (= prev-env attrs/*attr-env*))))
