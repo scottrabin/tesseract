@@ -40,10 +40,10 @@
 
 (deftest test-build-attrs
   (is (= {:class "foo bar"}
-         (attrs/build-attrs
-           (dom/div {:on-click (fn [e] nil)
-                     :class [:foo :bar]})
-           nil))))
+         (-> (dom/div {:on-click (fn [e] nil)
+                       :class [:foo :bar]})
+             (attrs/build-attrs nil)
+             (attrs/get-attrs)))))
 
 (deftest test-listener-registration
   (let [cursor [:root-id 0 0]

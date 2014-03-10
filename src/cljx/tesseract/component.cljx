@@ -135,7 +135,6 @@
     ;; TODO (did-build! built component root-node)
     built))
 
-#+cljs
 (defn- mount-child!
   "Renders a component, mounts the child component, then returns it"
   [component cursor]
@@ -143,7 +142,6 @@
         child-cursor (conj cursor 0)]
     (mount! child nil child-cursor)))
 
-#+cljs
 (defn mount-component!
   [component root-node cursor]
   (let [component (-> component
@@ -188,10 +186,12 @@
                                           children# (if (associative? children#) children# (vec children#))]
                                       (cond
                                         ks# (if-let [next-child# (get children# k#)]
-                                              (->> (-assoc-child-in next-child# ks# child)
+                                              (->> (-assoc-child-in next-child# ks# child#)
                                                    (assoc children# k#)
                                                    (assoc this# ::children))
-                                              (throw (js/Error. "Failed to associate child at uninitialized path")))
+                                              (throw
+                                                #+clj (RuntimeException. "Failed to associate child at uninitialized path")
+                                                #+cljs (js/Error. "Failed to associate child at uninitialized path")))
 
                                         k# (-assoc-child this# k# child#)
 

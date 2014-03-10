@@ -37,6 +37,12 @@
            (component/render c)))))
 
 (deftest test-IBuiltComponent-protocol
+  (testing "assoc-children"
+    (let [c (OrderedList {})
+          children [(dom/div {})]]
+      (is (= children
+             (-> (component/-assoc-children c children)
+                 (component/-get-children))))))
   (let [li0 (dom/li {} "zero")
         li1 (dom/li {} "one")
         ol (-> (dom/ol {} li0 li1)

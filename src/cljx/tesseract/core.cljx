@@ -1,11 +1,14 @@
 (ns tesseract.core
   #+cljs (:require [tesseract.mount :as mount]
                    [tesseract.dom :as dom]
+                   [tesseract.attrs]
                    [tesseract.cursor]
                    [tesseract.component :as c]
                    [tesseract.queue :as q])
-  #+clj  (:require [tesseract.component :as c]
+  #+clj  (:require [tesseract.dom :as dom]
+                   [tesseract.attrs]
                    [tesseract.cursor]
+                   [tesseract.component :as c]
                    [tesseract.queue :as q]))
 
 #+cljs
@@ -22,12 +25,10 @@
 
 ;; TODO This should probably be moved to own namespace or tesseract.component
 
-#+cljs
 (defn- mount-children! [nested-children parent-cursor]
   (map-indexed #(c/mount! %2 nil (conj parent-cursor %1))
                (flatten nested-children)))
 
-#+cljs
 (defn- build-children! [nested-children prev-children parent-cursor]
   (map-indexed (fn [idx child]
                  (let [child-cursor (conj parent-cursor idx)]
@@ -36,35 +37,24 @@
                      (c/mount! child nil child-cursor))))
                (flatten nested-children)))
 
-#+cljs
-(extend-protocol c/IComponent
-  dom/Element
+(extend-type #+clj tesseract.dom.Element #+cljs dom/Element
+  c/IComponent
   (-render [this] this)
   (-mount! [this _ cursor]
     (let [children (mount-children! (:children this) cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
+          (tesseract.attrs/build-attrs nil)
           (c/assoc-children children))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (build-children! (:children this) prev-children cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
+          (tesseract.attrs/build-attrs prev-component)
           (c/assoc-children children))))
 
-  string
-  (-render [this] this)
-  (-mount! [this _ _] this)
-  (-build! [this _ cursor] this)
-
-  number
-  (-render [this] this)
-  (-mount! [this _ _] this)
-  (-build! [this _ cursor] this))
-
-#+cljs
-(extend-protocol c/IBuiltComponent
-  dom/Element
+  c/IBuiltComponent
   (-get-children [this] (:children this))
   (-get-child [this k]
     (get-in this [:children k]))
@@ -85,11 +75,24 @@
              (->> (c/-assoc-child-in next-child ks child)
                   (assoc children k)
                   (assoc :children this))
-             (throw (js/Error. "Failed to associate child at uninitialized path")))
+             (throw
+               #+clj  (RuntimeException. "Failed to associate child at uninitialized path")
+               #+cljs (js/Error. "Failed to associate child at uninitialized path")))
 
         k (c/-assoc-child this k child)
 
         :else child))))
+
+(extend-protocol c/IComponent
+  #+clj String #+cljs string
+  (-render [this] this)
+  (-mount! [this _ _] this)
+  (-build! [this _ cursor] this)
+
+  #+clj java.lang.Number #+cljs number
+  (-render [this] this)
+  (-mount! [this _ _] this)
+  (-build! [this _ cursor] this))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

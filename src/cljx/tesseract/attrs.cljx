@@ -130,9 +130,14 @@
           (register-listener! *attr-env* event-name cursor value))))
     attrs))
 
+(defn assoc-attrs [component attrs] (assoc component ::attrs attrs))
+
+(defn get-attrs [component] (::attrs component))
+
 (defn build-attrs [component prev-component]
-  (let [prev-attrs (:attrs prev-component)]
-    (reduce (fn [attrs [attr value]]
-              (build-attr attrs component attr value (get prev-attrs attr)))
-            {}
-            (:attrs component))))
+  (let [prev-attrs (:attrs prev-component)
+        built-attrs (reduce (fn [attrs [attr value]]
+                              (build-attr attrs component attr value (get prev-attrs attr)))
+                            {}
+                            (:attrs component))]
+    (assoc-attrs component built-attrs)))
