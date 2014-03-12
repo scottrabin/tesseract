@@ -109,18 +109,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmulti build-attr
+(defmulti build-attr!
   (fn [attrs component attr value old-value] (keyword attr))
   :default ::default)
 
-(defmethod build-attr ::default
+(defmethod build-attr! ::default
   [attrs component attr value old-value]
   (assoc attrs attr (dom/to-attr value)))
 
 ;; on-* event attrs don't affect DOM attrs
 ;; TODO Use macro
 (doseq [event-name event-names]
-  (defmethod build-attr (keyword (str "on-" (name event-name)))
+  (defmethod build-attr! (keyword (str "on-" (name event-name)))
     [attrs component attr value old-value]
     (when (and *attr-env* (not= value old-value))
       (let [cursor (tesseract.cursor/get-cursor component)]
@@ -134,10 +134,10 @@
 
 (defn get-attrs [component] (::attrs component))
 
-(defn build-attrs [component prev-component]
+(defn build-attrs! [component prev-component]
   (let [prev-attrs (:attrs prev-component)
         built-attrs (reduce (fn [attrs [attr value]]
-                              (build-attr attrs component attr value (get prev-attrs attr)))
+                              (build-attr! attrs component attr value (get prev-attrs attr)))
                             {}
                             (:attrs component))]
     (assoc-attrs component built-attrs)))

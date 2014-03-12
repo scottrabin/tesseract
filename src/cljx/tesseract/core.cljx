@@ -44,14 +44,14 @@
     (let [children (mount-children! (:children this) cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
-          (tesseract.attrs/build-attrs nil)
+          (tesseract.attrs/build-attrs! nil)
           (c/assoc-children children))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (build-children! (:children this) prev-children cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
-          (tesseract.attrs/build-attrs prev-component)
+          (tesseract.attrs/build-attrs! prev-component)
           (c/assoc-children children))))
 
   c/IBuiltComponent
