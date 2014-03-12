@@ -13,7 +13,7 @@
   (did-mount! [this root-node])
   (render [component]
           (apply dom/ol
-                 {:class :test-component}
+                 (assoc (:attrs component) :class :test-component)
                  (for [child (:children component)]
                    (dom/li {} child)))))
 
@@ -35,6 +35,11 @@
                    (dom/li {} "first")
                    (dom/li {} "second"))
            (component/render c)))))
+
+(deftest test-toString
+  (let [c (OrderedList {:on-click (fn [_ _])} "first" "second")]
+    (is (= "<ol class=\"test-component\"><li>first</li><li>second</li></ol>"
+           (str c)))))
 
 (deftest test-IBuiltComponent-protocol
   (testing "assoc-children"

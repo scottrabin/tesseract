@@ -1,5 +1,6 @@
 (ns tesseract.component
   (:require [tesseract.dom :as dom]
+            [tesseract.attrs]
             [tesseract.cursor]))
 
 (defprotocol IComponent
@@ -220,7 +221,9 @@
                 `(~'toString [this#]
                              (if-let [[built-child#] (-get-children this#)]
                                (str built-child#)
-                               (render-str this#)))]]]
+                               (-> (-render this#)
+                                   (tesseract.attrs/build-attrs)
+                                   (str))))]]]
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state]
          ~@(apply concat impls))
