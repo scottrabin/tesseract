@@ -198,9 +198,17 @@
 (defn get-attrs [component] (::attrs component))
 
 (defn build-attrs! [component prev-component]
+  "Returns component with built attributes, the attributes that should be
+  reflected in the DOM. Side-effects may occur for non-DOM attrs
+  (ie event attrs) to update the current atom var bound to *attr-env*"
   (let [prev-attrs (:attrs prev-component)
         built-attrs (reduce (fn [attrs [attr value]]
                               (build-attr! attrs component attr value (get prev-attrs attr)))
                             {}
                             (:attrs component))]
     (assoc-attrs component built-attrs)))
+
+(defn build-attrs [component]
+  "Builds attributes without side-effects"
+  (binding [*attr-env* nil]
+    (build-attrs! component nil)))

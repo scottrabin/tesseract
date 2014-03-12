@@ -97,7 +97,7 @@
     (doseq [[prev next expected] cases]
       (is (= (set expected) (set (attrs/attrs-diff prev next)))))))
 
-(deftest test-build-attrs
+(deftest test-build-attrs!
   (is (= {:class "foo bar"}
          (-> (dom/div {:on-click (fn [e] nil)
                        :class [:foo :bar]})
@@ -131,3 +131,14 @@
     (attrs/with-attr-env env
       (is (= env attrs/*attr-env*)))
     (is (= prev-env attrs/*attr-env*))))
+
+(deftest test-build-attrs
+  (testing "listeners are NOT registerred"
+    (let [cursor [:root-id 1]
+          component (-> (dom/div {:id 1 :on-click (fn [e c])})
+                        (tesseract.cursor/assoc-cursor cursor))
+          env (atom {})]
+      (binding [attrs/*attr-env* env]
+        (let [built-attrs (-> component (attrs/build-attrs) (attrs/get-attrs))]
+          (is (= {:id "1"} built-attrs))
+          (is (= {} @env)))))))
