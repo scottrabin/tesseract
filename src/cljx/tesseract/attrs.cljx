@@ -1,7 +1,70 @@
 (ns tesseract.attrs
-  (:require [tesseract.dom :as dom]
-            [tesseract.cursor]
+  (:require [tesseract.cursor]
             [clojure.set]))
+
+(defprotocol IAttributeValue
+  (to-attr [this] "Generate an unescaped attribute value string"))
+
+(extend-protocol IAttributeValue
+  #+clj String #+cljs string
+  (to-attr [this]
+    this)
+
+  #+clj clojure.lang.Keyword #+cljs cljs.core/Keyword
+  (to-attr [this]
+    (name this))
+
+  #+clj clojure.lang.LazySeq #+cljs cljs.core/LazySeq
+  (to-attr [this]
+    (clojure.string/join " " (map to-attr this)))
+
+  #+clj clojure.lang.PersistentList #+cljs cljs.core/List
+  (to-attr [this]
+    (to-attr (map to-attr this)))
+
+  #+clj clojure.lang.PersistentVector #+cljs cljs.core/PersistentVector
+  (to-attr [this]
+    (to-attr (map to-attr this)))
+
+  #+clj clojure.lang.PersistentHashSet #+cljs cljs.core/PersistentHashSet
+  (to-attr [this]
+    (to-attr (map to-attr this)))
+
+  #+clj clojure.lang.PersistentArrayMap #+cljs cljs.core/PersistentArrayMap
+  (to-attr [this]
+    (to-attr (for [[k v] this :when v] k)))
+
+  #+clj clojure.lang.PersistentTreeMap #+cljs cljs.core/PersistentTreeMap
+  (to-attr [this]
+    (to-attr (for [[k v] this :when v] k)))
+
+  #+clj clojure.lang.PersistentTreeSet #+cljs cljs.core/PersistentTreeSet
+  (to-attr [this]
+    (to-attr (map to-attr this)))
+
+  #+clj java.lang.Boolean #+cljs boolean
+  (to-attr [this] (str this))
+
+  #+clj java.lang.Number #+cljs number
+  (to-attr [this] (str this)))
+
+(def HTML_ATTR_ESCAPE {\< "&lt;"
+                       \> "&gt;"
+                       \" "&quot;"
+                       \' "&apos;"
+                       \& "&amp;"})
+
+(defn to-element-attribute
+  "Translate an attribute key value pair to a string"
+  ([[k v]]
+   (to-element-attribute k v))
+  ([k v]
+   (str (name k)
+        "=\""
+        (clojure.string/escape (to-attr v) HTML_ATTR_ESCAPE)
+        "\"")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def event-names
   #{:blur
@@ -74,7 +137,7 @@
                   (if (= attr :style)
                     (concat ops (style-diff (:style prev-attrs)
                                             (:style next-attrs)))
-                    (if (= (dom/to-attr prev) (dom/to-attr next))
+                    (if (= (to-attr prev) (to-attr next))
                       ops
                       (conj ops [:set-attr attr (get next-attrs attr)])))))
               nil
@@ -115,7 +178,7 @@
 
 (defmethod build-attr! ::default
   [attrs component attr value old-value]
-  (assoc attrs attr (dom/to-attr value)))
+  (assoc attrs attr (to-attr value)))
 
 ;; on-* event attrs don't affect DOM attrs
 ;; TODO Use macro

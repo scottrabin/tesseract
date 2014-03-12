@@ -1,80 +1,21 @@
 (ns tesseract.dom
   (:refer-clojure :exclude [map meta time var])
-  (:require [clojure.string])
+  (:require [clojure.string]
+            [tesseract.attrs])
   #+cljs (:require-macros [tesseract.dom :refer [defelement]]))
-
-(defprotocol IAttributeValue
-  (to-attr [this] "Generate an unescaped attribute value string"))
-
-(extend-protocol IAttributeValue
-  #+clj String #+cljs string
-  (to-attr [this]
-    this)
-
-  #+clj clojure.lang.Keyword #+cljs cljs.core/Keyword
-  (to-attr [this]
-    (name this))
-
-  #+clj clojure.lang.LazySeq #+cljs cljs.core/LazySeq
-  (to-attr [this]
-    (clojure.string/join " " (clojure.core/map to-attr this)))
-
-  #+clj clojure.lang.PersistentList #+cljs cljs.core/List
-  (to-attr [this]
-    (to-attr (clojure.core/map to-attr this)))
-
-  #+clj clojure.lang.PersistentVector #+cljs cljs.core/PersistentVector
-  (to-attr [this]
-    (to-attr (clojure.core/map to-attr this)))
-
-  #+clj clojure.lang.PersistentHashSet #+cljs cljs.core/PersistentHashSet
-  (to-attr [this]
-    (to-attr (clojure.core/map to-attr this)))
-
-  #+clj clojure.lang.PersistentArrayMap #+cljs cljs.core/PersistentArrayMap
-  (to-attr [this]
-    (to-attr (for [[k v] this :when v] k)))
-
-  #+clj clojure.lang.PersistentTreeMap #+cljs cljs.core/PersistentTreeMap
-  (to-attr [this]
-    (to-attr (for [[k v] this :when v] k)))
-
-  #+clj clojure.lang.PersistentTreeSet #+cljs cljs.core/PersistentTreeSet
-  (to-attr [this]
-    (to-attr (clojure.core/map to-attr this)))
-
-  #+clj java.lang.Boolean #+cljs boolean
-  (to-attr [this] (str this))
-
-  #+clj java.lang.Number #+cljs number
-  (to-attr [this] (str this)))
-
-(def HTML_ATTR_ESCAPE {\< "&lt;"
-                       \> "&gt;"
-                       \" "&quot;"
-                       \' "&apos;"
-                       \& "&amp;"})
-(defn to-element-attribute
-  "Translate an attribute key value pair to a string"
-  ([[k v]]
-   (to-element-attribute k v))
-  ([k v]
-   (str (name k)
-        "=\""
-        (clojure.string/escape (to-attr v) HTML_ATTR_ESCAPE)
-        "\"")))
 
 (defrecord Element [tag attrs children]
   Object
-  (toString [_]
-    (let [tag-name (-> tag name str)]
+  (toString [this]
+    (let [tag-name (-> tag name str)
+          attrs (or (tesseract.attrs/get-attrs this) attrs)]
       (str
         "<"
         tag-name
-        (when-not (empty? attrs)
-          (str " " (clojure.string/join " " (clojure.core/map to-element-attribute attrs))))
+        (when (seq attrs)
+          (str " " (clojure.string/join " " (clojure.core/map tesseract.attrs/to-element-attribute attrs))))
         ">"
-        (when-not (empty? children)
+        (when (seq children)
           (clojure.string/join (clojure.core/map str (flatten children))))
         "</" tag-name ">"))))
 
