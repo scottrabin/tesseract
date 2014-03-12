@@ -217,7 +217,10 @@
                  [`IWillUnmount
                   `(~'-will-unmount! ~@spec)])
                ['Object
-                `(~'toString [this#] (render-str this#))]]]
+                `(~'toString [this#]
+                             (if-let [[built-child#] (-get-children this#)]
+                               (str built-child#)
+                               (render-str this#)))]]]
     `(do
        (defrecord ~rec-name [~'attrs ~'children ~'state]
          ~@(apply concat impls))
