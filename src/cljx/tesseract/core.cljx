@@ -4,7 +4,8 @@
                    [tesseract.attrs]
                    [tesseract.cursor]
                    [tesseract.component :as c]
-                   [tesseract.queue :as q])
+                   [tesseract.queue :as q]
+                   [tesseract.events])
   #+clj  (:require [tesseract.dom :as dom]
                    [tesseract.attrs]
                    [tesseract.cursor]
@@ -12,7 +13,7 @@
                    [tesseract.queue :as q]))
 
 #+cljs
-(def ^:private mount-env (atom {}))
+(def ^:private tesseract-env (atom {}))
 
 (def ^:private next-state-queue (atom (q/make-queue)))
 
@@ -99,20 +100,23 @@
 #+cljs
 (defn tick-state! [component next-state-fn cursor]
   (let [[root-id & path] cursor
-        container (mount/container-by-root-id mount-env root-id)
-        root-component (mount/component-by-root-id mount-env root-id)
+        container (mount/container-by-root-id tesseract-env root-id)
+        root-component (mount/component-by-root-id tesseract-env root-id)
         canon-component (c/get-child-in root-component path)
         not-found? (nil? canon-component)
         component (or canon-component component)
         next-component (next-state-fn component)]
     (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
-      (let [root-cursor (tesseract.cursor/cursor root-id)
-            root-component (-> root-component
-                               (c/assoc-child-in path next-component)
-                               (c/build! root-component root-cursor))]
-        (set! (.-innerHTML container) (str root-component))
-        (mount/register-component! mount-env root-component root-id)))))
+      (binding [tesseract.attrs/*attr-env* tesseract-env]
+        (let [root-cursor (tesseract.cursor/cursor root-id)
+              root-component (-> root-component
+                                 (c/assoc-child-in path next-component)
+                                 (c/build! root-component root-cursor))]
+          ;(.log js/console (str @tesseract-env))
+          (set! (.-innerHTML container) (str root-component))
+          (mount/register-component! tesseract-env root-component root-id)
+          )))))
 
 #+cljs
 (defn flush-next-state! []
@@ -137,13 +141,13 @@
 (defn unmount-component!
   ([container]
    (if-let [component (mount/component-by-root-id
-                        mount-env
+                        tesseract-env
                         (mount/root-id container))]
      (unmount-component! component container)))
   ([component container]
    (when-let [id (mount/root-id container)]
      (c/will-unmount! component)
-     (mount/unregister-root-id! mount-env id)
+     (mount/unregister-root-id! tesseract-env id)
      (empty-node! container)
      true)))
 
@@ -151,9 +155,9 @@
 (defn unmount-all!
   "Unmounts all currently mounted components. Useful for tests"
   []
-  (doseq [id (mount/root-ids mount-env)]
-    (let [component (mount/component-by-root-id mount-env id)
-          container (mount/container-by-root-id mount-env id)]
+  (doseq [id (mount/root-ids tesseract-env)]
+    (let [component (mount/component-by-root-id tesseract-env id)
+          container (mount/container-by-root-id tesseract-env id)]
       (unmount-component! component container))))
 #+cljs
 (defn- replace-component!
@@ -164,7 +168,7 @@
 (defn mount-into-container!
   [component container]
   (let [id (mount/root-id container)
-        existing-component (mount/component-by-root-id mount-env id)]
+        existing-component (mount/component-by-root-id tesseract-env id)]
     (if (and existing-component
              (= (type existing-component) (type component)))
       (replace-component! existing-component component id container)
@@ -174,8 +178,8 @@
           (unmount-component! existing-component container))
         ;; Mount
         (let [root-component (c/mount! component container [id])]
-          (mount/register-component! mount-env root-component id)
-          (mount/register-container! mount-env container id)
+          (mount/register-component! tesseract-env root-component id)
+          (mount/register-container! tesseract-env container id)
 
           ;; TODO actual diffs
           (set! (.-innerHTML container) (str root-component))
