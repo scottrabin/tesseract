@@ -194,7 +194,7 @@
 (defn- base-attrs
   [component]
   (if-let [cursor (tesseract.cursor/get-cursor component)]
-    {:data-tesseract-cursor (pr-str cursor)}
+    {:data-tesseract-cursor (tesseract.cursor/to-str cursor)}
     {}))
 
 (defn build-attrs! [component prev-component env]
