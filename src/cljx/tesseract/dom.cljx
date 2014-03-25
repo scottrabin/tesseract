@@ -13,7 +13,10 @@
         "<"
         tag-name
         (when (seq attrs)
-          (str " " (clojure.string/join " " (clojure.core/map tesseract.attrs/to-element-attribute attrs))))
+          (->> attrs
+               (clojure.core/map tesseract.attrs/to-element-attribute)
+               (clojure.string/join " ")
+               (str " ")))
         ">"
         (when (seq children)
           (clojure.string/join (clojure.core/map str (flatten children))))
