@@ -191,6 +191,10 @@
 
 (defn get-attrs [component] (::attrs component))
 
+(defn- base-attrs
+  [component]
+  {:data-tesseract-cursor (pr-str (tesseract.cursor/get-cursor component))})
+
 (defn build-attrs! [component prev-component env]
   "Returns component with built attributes, the attributes that should be
   reflected in the DOM. When env is given, non-DOM attrs (eg event attrs)
@@ -199,7 +203,7 @@
         built-attrs (reduce
                       (fn [attrs [attr value]]
                         (build-attr! attrs component attr value (get prev-attrs attr) env))
-                      {}
+                      (base-attrs component)
                       (:attrs component))]
     (assoc-attrs component built-attrs)))
 
