@@ -12,7 +12,6 @@
                    [tesseract.component :as c]
                    [tesseract.queue :as q]))
 
-#+cljs
 (def ^:private tesseract-env (atom {}))
 
 (def ^:private next-state-queue (atom (q/make-queue)))
@@ -45,14 +44,14 @@
     (let [children (mount-children! (:children this) cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
-          (tesseract.attrs/build-attrs! nil)
+          (tesseract.attrs/build-attrs! nil tesseract-env)
           (c/assoc-children children))))
   (-build! [this prev-component cursor]
     (let [prev-children (:children prev-component)
           children (build-children! (:children this) prev-children cursor)]
       (-> this
           (tesseract.cursor/assoc-cursor cursor)
-          (tesseract.attrs/build-attrs! prev-component)
+          (tesseract.attrs/build-attrs! prev-component tesseract-env)
           (c/assoc-children children))))
 
   c/IBuiltComponent
@@ -108,15 +107,12 @@
         next-component (next-state-fn component)]
     (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
-      (binding [tesseract.attrs/*attr-env* tesseract-env]
-        (let [root-cursor (tesseract.cursor/cursor root-id)
-              root-component (-> root-component
-                                 (c/assoc-child-in path next-component)
-                                 (c/build! root-component root-cursor))]
-          ;(.log js/console (str @tesseract-env))
-          (set! (.-innerHTML container) (str root-component))
-          (mount/register-component! tesseract-env root-component root-id)
-          )))))
+      (let [root-cursor (tesseract.cursor/cursor root-id)
+            root-component (-> root-component
+                               (c/assoc-child-in path next-component)
+                               (c/build! root-component root-cursor))]
+        (set! (.-innerHTML container) (str root-component))
+        (mount/register-component! tesseract-env root-component root-id)))))
 
 #+cljs
 (defn flush-next-state! []

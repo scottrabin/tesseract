@@ -145,16 +145,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^:dynamic *attr-env* nil)
+(defn register-handler! [env event-name cursor handler]
+  (swap! env assoc-in [:handlers event-name cursor] handler))
 
-#+clj
-(defmacro with-attr-env [env & forms]
-  `(binding [*attr-env* ~env] ~@forms))
-
-(defn register-listener! [env event-name cursor listener]
-  (swap! env assoc-in [:listeners event-name cursor] listener))
-
-(defn unregister-listener! [env event-name cursor]
+(defn unregister-handler! [env event-name cursor]
   (swap! env (fn dissoc-in [m [k & ks :as keys]]
                (if ks
                  (if-let [nextmap (get m k)]
@@ -164,51 +158,51 @@
                        (dissoc m k)))
                    m)
                  (dissoc m k)))
-         [:listeners event-name cursor]))
+         [:handlers event-name cursor]))
 
-(defn get-listener
+(defn get-handler
   [env event-name cursor]
-  (get-in @env [:listeners event-name cursor]))
+  (get-in @env [:handlers event-name cursor]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmulti build-attr!
-  (fn [attrs component attr value old-value] (keyword attr))
+  (fn [attrs component attr value old-value env] (keyword attr))
   :default ::default)
 
 (defmethod build-attr! ::default
-  [attrs component attr value old-value]
+  [attrs _ attr value _ _]
   (assoc attrs attr (to-attr value)))
 
 ;; on-* event attrs don't affect DOM attrs
 ;; TODO Use macro
 (doseq [event-name event-names]
   (defmethod build-attr! (keyword (str "on-" (name event-name)))
-    [attrs component attr value old-value]
-    (when (and *attr-env* (not= value old-value))
+    [attrs component attr value old-value env]
+    (when (and env (not= value old-value))
       (let [cursor (tesseract.cursor/get-cursor component)]
         (when old-value
-          (unregister-listener! *attr-env* event-name cursor))
+          (unregister-handler! env event-name cursor))
         (when value
-          (register-listener! *attr-env* event-name cursor value))))
+          (register-handler! env event-name cursor value))))
     attrs))
 
 (defn assoc-attrs [component attrs] (assoc component ::attrs attrs))
 
 (defn get-attrs [component] (::attrs component))
 
-(defn build-attrs! [component prev-component]
+(defn build-attrs! [component prev-component env]
   "Returns component with built attributes, the attributes that should be
-  reflected in the DOM. Side-effects may occur for non-DOM attrs
-  (ie event attrs) to update the current atom var bound to *attr-env*"
+  reflected in the DOM. When env is given, non-DOM attrs (eg event attrs)
+  will be registered"
   (let [prev-attrs (:attrs prev-component)
-        built-attrs (reduce (fn [attrs [attr value]]
-                              (build-attr! attrs component attr value (get prev-attrs attr)))
-                            {}
-                            (:attrs component))]
+        built-attrs (reduce
+                      (fn [attrs [attr value]]
+                        (build-attr! attrs component attr value (get prev-attrs attr) env))
+                      {}
+                      (:attrs component))]
     (assoc-attrs component built-attrs)))
 
 (defn build-attrs [component]
   "Builds attributes without side-effects"
-  (binding [*attr-env* nil]
-    (build-attrs! component nil)))
+  (build-attrs! component nil nil))

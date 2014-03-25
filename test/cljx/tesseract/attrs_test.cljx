@@ -101,44 +101,28 @@
   (is (= {:class "foo bar"}
          (-> (dom/div {:on-click (fn [e] nil)
                        :class [:foo :bar]})
-             (attrs/build-attrs! nil)
+             (attrs/build-attrs! nil nil)
              (attrs/get-attrs)))))
 
-(deftest test-listener-registration
+(deftest test-handler-registration
   (let [cursor [:root-id 0 0]
         env (atom {})
         event-name :click
-        listener (fn [e c])
-        ks [:listeners event-name cursor]]
-    (attrs/register-listener! env event-name cursor listener)
-    (is (= listener (attrs/get-listener env event-name cursor)))
-    (attrs/unregister-listener! env event-name cursor)
-    (is (nil? (attrs/get-listener env event-name cursor)))))
+        handler (fn [e c])
+        ks [:handlers event-name cursor]]
+    (attrs/register-handler! env event-name cursor handler)
+    (is (= handler (attrs/get-handler env event-name cursor)))
+    (attrs/unregister-handler! env event-name cursor)
+    (is (nil? (attrs/get-handler env event-name cursor)))))
 
 (deftest test-attr-env
-  (binding [attrs/*attr-env* (atom {})]
-    (let [cursor [:root-id 1]
-          component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
-          listener (fn [e c])]
-      (attrs/build-attr! {} component :on-click listener nil)
-      (is (= listener (attrs/get-listener attrs/*attr-env* :click cursor)))
-      (attrs/build-attr! {} component :on-click nil listener)
-      (is (nil? (attrs/get-listener attrs/*attr-env* :click cursor))))))
-
-(deftest test-with-attr-env
   (let [env (atom {})
-        prev-env attrs/*attr-env*]
-    (attrs/with-attr-env env
-      (is (= env attrs/*attr-env*)))
-    (is (= prev-env attrs/*attr-env*))))
-
-(deftest test-build-attrs
-  (testing "listeners are NOT registerred"
-    (let [cursor [:root-id 1]
-          component (-> (dom/div {:id 1 :on-click (fn [e c])})
-                        (tesseract.cursor/assoc-cursor cursor))
-          env (atom {})]
-      (binding [attrs/*attr-env* env]
-        (let [built-attrs (-> component (attrs/build-attrs) (attrs/get-attrs))]
-          (is (= {:id "1"} built-attrs))
-          (is (= {} @env)))))))
+        cursor [:root-id 1]
+        component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
+        handler (fn [e c])]
+    (testing "adding handler"
+      (attrs/build-attr! {} component :on-click handler nil env)
+      (is (= handler (attrs/get-handler env :click cursor))))
+    (testing "removing handler"
+      (attrs/build-attr! {} component :on-click nil handler env)
+      (is (nil? (attrs/get-handler env :click cursor))))))
