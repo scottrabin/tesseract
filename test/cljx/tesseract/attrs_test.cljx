@@ -2,6 +2,7 @@
   #+clj (:require [clojure.test :refer :all]
                   [tesseract.attrs :as attrs]
                   [tesseract.dom :as dom]
+                  [tesseract.env :as env]
                   [tesseract.cursor])
   #+cljs (:require-macros [cemerick.cljs.test
                            :refer (is deftest with-test run-tests testing test-var)])

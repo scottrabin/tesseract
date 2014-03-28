@@ -1,11 +1,13 @@
 (ns tesseract.env
-  "Tesseract environment controls")
+  "Tesseract environment controls"
+  (:require [tesseract.queue :as queue]))
 
 (defn create-env
   "Create a new Tesseract environment"
   []
   (atom {:components {} ; A map of root-id values to the component instances
          :containers {} ; A map of root-id values to the DOM elements component instances are mounted in
+         :queue (atom (queue/make-queue)) ; The queue of unresolve state changes
          }))
 
 (defn register-container!
@@ -25,3 +27,8 @@
                (assoc env
                       :containers (dissoc containers id)
                       :components (dissoc components id)))))
+
+(defn get-queue
+  "Get the unresolved state queue for a given environment"
+  [env]
+  (:queue @env))

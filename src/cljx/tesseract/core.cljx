@@ -9,14 +9,13 @@
                    [tesseract.queue :as q]
                    [tesseract.events])
   #+clj  (:require [tesseract.dom :as dom]
+                   [tesseract.env :as env]
                    [tesseract.attrs]
                    [tesseract.cursor]
                    [tesseract.component :as c]
                    [tesseract.queue :as q]))
 
 (def ^:private tesseract-env (env/create-env))
-
-(def ^:private next-state-queue (atom (q/make-queue)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -114,20 +113,20 @@
 #+cljs
 (defn flush-next-state! []
   ;; TODO utilize mount depth (ie cursor length) to update efficiently
-  (when-let [[component next-state-fn] (q/dequeue! next-state-queue)]
+  (when-let [[component next-state-fn] (q/dequeue! (env/get-queue tesseract-env))]
     (tick-state! component next-state-fn (tesseract.cursor/get-cursor component))
     (recur)))
 
 #+cljs
 (defn set-state!
   [component state]
-  (q/enqueue! next-state-queue
+  (q/enqueue! (env/get-queue tesseract-env)
               [component #(assoc % :state state)]))
 
 #+cljs
 (defn update-state!
   [component f & args]
-  (q/enqueue! next-state-queue
+  (q/enqueue! (env/get-queue tesseract-env)
               [component #(assoc % :state (apply f (:state %) args))]))
 
 #+cljs
