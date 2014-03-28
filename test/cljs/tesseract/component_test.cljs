@@ -1,10 +1,16 @@
 (ns tesseract.component-test
   (:require-macros [cemerick.cljs.test
-                    :refer (is deftest with-test run-tests testing test-var)])
+                    :refer (is deftest with-test run-tests testing test-var use-fixtures)])
   (:require [cemerick.cljs.test :as t]
             [tesseract.core :as core :refer-macros [defcomponent]]
             [tesseract.component :as component]
             [tesseract.dom :as dom]))
+
+(use-fixtures :each
+              (fn [f]
+                "Clean up any components still mounted after all tests"
+                (f)
+                (tesseract.core/unmount-all!)))
 
 (defcomponent OrderedList
   (will-build! [this next-component])
@@ -110,4 +116,3 @@
     (is (= 2 (count (:children out))))
     (is (= "<div class=\"comment-list\"><div class=\"comment\"><h2 class=\"comment-author\">Logan Linn</h2>This is one comment</div><div class=\"comment\"><h2 class=\"comment-author\">Scott Rabin</h2>This is *another* comment</div></div>"
            (str out)))))
-

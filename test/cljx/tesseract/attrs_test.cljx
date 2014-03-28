@@ -7,6 +7,7 @@
                            :refer (is deftest with-test run-tests testing test-var)])
   #+cljs (:require [cemerick.cljs.test :as t]
                    [tesseract.attrs :as attrs :include-macros true]
+                   [tesseract.env :as env]
                    [tesseract.cursor]
                    [tesseract.dom :as dom]))
 (defn attr=
@@ -106,7 +107,7 @@
 
 (deftest test-handler-registration
   (let [cursor (tesseract.cursor/->cursor :root-id 0 0)
-        env (atom {})
+        env (env/create-env)
         event-name :click
         handler (fn [e c])
         ks [:handlers event-name cursor]]
@@ -116,7 +117,7 @@
     (is (nil? (attrs/get-handler env event-name cursor)))))
 
 (deftest test-attr-env
-  (let [env (atom {})
+  (let [env (env/create-env)
         cursor (tesseract.cursor/->cursor :root-id 1)
         component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
         handler (fn [e c])]

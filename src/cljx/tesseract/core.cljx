@@ -1,6 +1,7 @@
 (ns tesseract.core
   #+cljs (:require [tesseract.mount :as mount]
                    [tesseract.dom :as dom]
+                   [tesseract.env :as env]
                    [tesseract.attrs]
                    [tesseract.cursor]
                    [tesseract.component :as c]
@@ -12,7 +13,7 @@
                    [tesseract.component :as c]
                    [tesseract.queue :as q]))
 
-(def ^:private tesseract-env (atom {}))
+(def ^:private tesseract-env (env/create-env))
 
 (def ^:private next-state-queue (atom (q/make-queue)))
 
@@ -112,7 +113,7 @@
                                (c/assoc-child-in path next-component)
                                (c/build! root-component root-cursor))]
         (set! (.-innerHTML container) (str root-component))
-        (mount/register-component! tesseract-env root-component root-id)))))
+        (env/register-component! tesseract-env root-component root-id)))))
 
 #+cljs
 (defn flush-next-state! []
@@ -143,7 +144,7 @@
   ([component container]
    (when-let [id (mount/root-id container)]
      (c/will-unmount! component)
-     (mount/unregister-root-id! tesseract-env id)
+     (env/unregister-root-id! tesseract-env id)
      (empty-node! container)
      true)))
 
@@ -174,8 +175,8 @@
           (unmount-component! existing-component container))
         ;; Mount
         (let [root-component (c/mount! component container [id])]
-          (mount/register-component! tesseract-env root-component id)
-          (mount/register-container! tesseract-env container id)
+          (env/register-component! tesseract-env root-component id)
+          (env/register-container! tesseract-env container id)
 
           ;; TODO actual diffs
           (set! (.-innerHTML container) (str root-component))
