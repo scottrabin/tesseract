@@ -39,4 +39,18 @@
                {:source-paths ["src/cljs" "test/cljs" "target/classes" "target/test-classes"]
                 :compiler {:output-to "target/generated/cljs-test.js"
                            :optimizations :whitespace ; clojurescript.test cannot work with :optimizations :none
-                           :pretty-print true}}}})
+                           :pretty-print true}}
+
+               :basic
+               {:source-paths ["src/cljs" "target/classes" "examples/basic/src"]
+                :compiler {:output-to "examples/basic/main.js"
+                           :output-dir "examples/basic/out"
+                           :source-map true
+                           :optimizations :none}}
+               ;:todomvc
+               ;{:source-paths ["src/cljs" "target/classes" "examples/todomvc/src"]
+                ;:compiler {:output-to "examples/todomvc/main.js"
+                           ;:output-dir "examples/todomvc/out"
+                           ;:source-map true
+                           ;:optimizations :none}}
+               }})

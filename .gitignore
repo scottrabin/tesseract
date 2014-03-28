@@ -1,3 +1,6 @@
+examples/*/main.js
+resources/dev/js
+out
 /target
 /lib
 /classes

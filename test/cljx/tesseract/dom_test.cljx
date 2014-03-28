@@ -6,63 +6,6 @@
   #+cljs (:require-macros [tesseract.dom :refer [defelement]]
                           [cemerick.cljs.test :refer [is deftest testing]]))
 
-(defn attr=
-  "Compare attribute values to check equality"
-  [& attrvals]
-  (apply = (map #(set (clojure.string/split % #"\s")) attrvals)))
-
-(deftest to-attr
-  (testing "Keywords"
-    (is (attr= "value"
-               (dom/to-attr :value))))
-  (testing "Strings"
-    (is (attr= "attribute-value"
-               (dom/to-attr "attribute-value"))))
-  (testing "Numbers"
-    (is (= "1" (dom/to-attr 1))
-        (= "2.31" (dom/to-attr 2.31))))
-  (testing "Lists"
-    (is (attr= "first second third"
-               (dom/to-attr (list :first "second" "third")))))
-  (testing "Vectors"
-    (is (attr= "first second third"
-               (dom/to-attr ["first" "second" "third"])))
-    (is (attr= "keyword second third"
-               (dom/to-attr [:keyword "second" "third"])))
-    (is (attr= "hash-one hash-two second keyword"
-               (dom/to-attr [{:hash-one true
-                               :hash-two true}
-                              "second"
-                              :keyword]))))
-  (testing "Hash maps"
-    (is (attr= "first second"
-               (dom/to-attr {"first" true
-                              "second" true})))
-    (is (attr= "second only"
-               (dom/to-attr {"first" false
-                              "second" true
-                              "only" true})))
-    (is (attr= "vector key other"
-               (dom/to-attr {["vector" "key"] true
-                              "other" true})))
-    (is (attr= "keyword other"
-               (dom/to-attr {:keyword true
-                              "other" true}))))
-  (testing "Sets"
-    (is (attr= "first second"
-               (dom/to-attr #{:first "second"}))))
-  (testing "Sorted map"
-    ; attribute value should come out in the sorted order
-    (is (= "first second"
-           (dom/to-attr (sorted-map-by
-                           #(compare (name %1) (name %2))
-                           :first true "second" true :third false)))))
-  (testing "Sorted set"
-    ; attribute value should come out in the sorted order
-    (is (= "first second"
-           (dom/to-attr (sorted-set-by
-                           compare
-                           :first :second))))))
 
 (deftest test-defelement
   (let [my-element (defelement my-element)]
