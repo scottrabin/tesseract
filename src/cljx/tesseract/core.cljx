@@ -1,6 +1,7 @@
 (ns tesseract.core
   #+cljs (:require [tesseract.mount :as mount]
                    [tesseract.dom :as dom]
+                   [tesseract.dom.core :as dom.core]
                    [tesseract.env :as env]
                    [tesseract.attrs]
                    [tesseract.cursor]
@@ -16,11 +17,6 @@
 (def ^:private tesseract-env (env/create-env))
 
 (def ^:private next-state-queue (atom (q/make-queue)))
-
-(defn- empty-node!
-  "http://jsperf.com/emptying-a-node"
-  [node]
-  (while (.-lastChild node) (.removeChild node (.-lastChild node))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -145,7 +141,7 @@
    (when-let [id (mount/root-id container)]
      (c/will-unmount! component)
      (env/unregister-root-id! tesseract-env id)
-     (empty-node! container)
+     (dom.core/empty! container)
      true)))
 
 #+cljs
