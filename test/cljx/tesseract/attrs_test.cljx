@@ -105,7 +105,7 @@
              (attrs/get-attrs)))))
 
 (deftest test-handler-registration
-  (let [cursor [:root-id 0 0]
+  (let [cursor (tesseract.cursor/->cursor :root-id 0 0)
         env (atom {})
         event-name :click
         handler (fn [e c])
@@ -117,7 +117,7 @@
 
 (deftest test-attr-env
   (let [env (atom {})
-        cursor [:root-id 1]
+        cursor (tesseract.cursor/->cursor :root-id 1)
         component (-> (dom/div {}) (tesseract.cursor/assoc-cursor cursor))
         handler (fn [e c])]
     (testing "adding handler"

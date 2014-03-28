@@ -107,7 +107,7 @@
         next-component (next-state-fn component)]
     (if (c/should-render? component next-component)
       ;; Rebuild entire thing for now... TODO rebuild next-component, find its respective DOM
-      (let [root-cursor (tesseract.cursor/cursor root-id)
+      (let [root-cursor (tesseract.cursor/->cursor root-id)
             root-component (-> root-component
                                (c/assoc-child-in path next-component)
                                (c/build! root-component root-cursor))]
