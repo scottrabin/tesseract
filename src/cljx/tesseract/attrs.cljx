@@ -1,6 +1,8 @@
 (ns tesseract.attrs
-  (:require [tesseract.cursor]
-            [clojure.set]))
+  (:require
+    [clojure.string]
+    [tesseract.cursor]
+    [clojure.set]))
 
 (defprotocol IAttributeValue
   (to-attr [this] "Generate an unescaped attribute value string"))
