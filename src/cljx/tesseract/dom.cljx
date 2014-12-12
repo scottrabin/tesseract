@@ -1,8 +1,11 @@
 (ns tesseract.dom
   (:refer-clojure :exclude [map meta time var])
-  (:require [clojure.string]
-            [tesseract.attrs])
-  #+cljs (:require-macros [tesseract.dom :refer [defelement]]))
+  #+cljs
+  (:require-macros
+    [tesseract.dom :refer [defelement]])
+  (:require
+    [clojure.string]
+    [tesseract.attrs]))
 
 (defrecord Element [tag attrs children]
   Object
@@ -14,6 +17,7 @@
         tag-name
         (when (seq attrs)
           (->> attrs
+               (filter #(satisfies? tesseract.attrs/IAttributeValue (val %)))
                (clojure.core/map tesseract.attrs/to-element-attribute)
                (clojure.string/join " ")
                (str " ")))
@@ -22,15 +26,20 @@
           (clojure.string/join (clojure.core/map str (flatten children))))
         "</" tag-name ">"))))
 
+#+clj
 (defmacro defelement
   [tag]
   (let [tag-kw (keyword tag)]
-    `(defn ~tag
-       [attrs# & children#]
-       (new Element
-            ~tag-kw
-            attrs#
-            (or children# [])))))
+    `(let [base-element# (new Element ~tag-kw nil [])]
+       (defn ~tag
+         ([]
+          base-element#)
+         ([attrs#]
+          (if (nil? attrs#)
+            base-element#
+            (new Element ~tag-kw attrs# [])))
+         ([attrs# & children#]
+          (new Element ~tag-kw attrs# (vec children#)))))))
 
 ; The commented out elements below are deprecated elements. There are others that are still
 ; available and considered not-best-practice (e.g. <b> and <i>), but they are not officially

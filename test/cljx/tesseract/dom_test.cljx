@@ -6,14 +6,27 @@
   #+cljs (:require-macros [tesseract.dom :refer [defelement]]
                           [cemerick.cljs.test :refer [is deftest testing]]))
 
+(defelement my-element)
 
 (deftest test-defelement
-  (let [my-element (defelement my-element)]
-    (testing "defined value"
-      (is (ifn? my-element)))
-    (testing "render to string"
-      (is (= "<my-element data-attr=\"some value\"></my-element>"
-             (str (my-element {:data-attr "some value"})))))))
+  (testing "defined value"
+    (is (ifn? my-element))
+    (testing "0-arity"
+      (is (identical? (my-element) (my-element))))
+    (testing "1-arity"
+      (is (identical? (my-element nil) (my-element nil)))
+      (is (identical? (my-element) (my-element nil)))
+      (is (= {:data-attr true} (:attrs (my-element {:data-attr true})))))
+    (testing "2-arity"
+      (let [el (my-element {:data-attr "ok"}
+                           (dom/div {:id "one"})
+                           (dom/span {:id "two"}))]
+        (is (= {:data-attr "ok"} (:attrs el)))
+        (is (= (dom/div {:id "one"}) (get-in el [:children 0])))
+        (is (= (dom/span {:id "two"}) (get-in el [:children 1]))))))
+  (testing "render to string"
+    (is (= "<my-element data-attr=\"some value\"></my-element>"
+           (str (my-element {:data-attr "some value"}))))))
 
 ; Test each element individually; the plan will have some individual logic
 ; build into certain elements, and it makes more sense to test each one

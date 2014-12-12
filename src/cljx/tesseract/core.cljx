@@ -1,19 +1,24 @@
 (ns tesseract.core
-  #+cljs (:require [tesseract.mount :as mount]
-                   [tesseract.dom :as dom]
-                   [tesseract.dom.core :as dom.core]
-                   [tesseract.env :as env]
-                   [tesseract.attrs]
-                   [tesseract.cursor]
-                   [tesseract.component :as c]
-                   [tesseract.queue :as q]
-                   [tesseract.events])
-  #+clj  (:require [tesseract.dom :as dom]
-                   [tesseract.env :as env]
-                   [tesseract.attrs]
-                   [tesseract.cursor]
-                   [tesseract.component :as c]
-                   [tesseract.queue :as q]))
+  #+cljs
+  (:require
+    [tesseract.mount :as mount]
+    [tesseract.dom :as dom]
+    [tesseract.dom.core :as dom.core]
+    [tesseract.env :as env]
+    [tesseract.attrs]
+    [tesseract.cursor]
+    [tesseract.component :as c]
+    [tesseract.queue :as q]
+    [tesseract.events])
+  #+clj
+  (:require
+    [tesseract.dom :as dom]
+    [tesseract.env :as env]
+    [tesseract.attrs]
+    [tesseract.cursor]
+    [tesseract.component :as c]
+    [tesseract.impl.component :as impl.component]
+    [tesseract.queue :as q]))
 
 (def ^:private tesseract-env (env/create-env))
 
@@ -183,8 +188,29 @@
   (mount-into-container! component container)
   (flush-next-state!))
 
+;;#+clj
+;;(defmacro defcomponent [component-name & spec]
+;;  (c/emit-defcomponent
+;;    component-name
+;;    (into {} (for [s spec] [(-> s first keyword) (rest s)]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public API
+
 #+clj
 (defmacro defcomponent [component-name & spec]
-  (c/emit-defcomponent
-    component-name
-    (into {} (for [s spec] [(-> s first keyword) (rest s)]))))
+  "Defines a new renderable component with the given specification. Valid
+  specification names:
+
+  init-state: the initial value for the state atom
+  render [attrs state children]: a function that accepts the current attributes,
+         state, and children of the component, and returns a DOM tree representing
+         the children of this component"
+  (impl.component/emit-defcomponent component-name spec))
+
+#+cljs
+(defn render!
+  "Renders a component into the given node as its container root"
+  [node component]
+  nil
+  )
