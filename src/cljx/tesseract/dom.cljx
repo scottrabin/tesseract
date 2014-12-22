@@ -5,9 +5,22 @@
     [tesseract.dom :refer [defelement]])
   (:require
     [clojure.string]
+    [tesseract.impl.vdom :as vdom]
     [tesseract.attrs]))
 
 (defrecord Element [tag attrs children]
+  tesseract.impl.vdom/IVirtualDOMNode
+  (-diff [_ other]
+    (let [other-attrs (:attrs other)
+          diff-map (into {}
+                         (for [k (reduce conj (keys attrs) (keys other-attrs))
+                               :let [self-val (get attrs k)
+                                     other-val (get other-attrs k)]
+                               :when (not= self-val other-val)]
+                           [k other-val]))]
+      (when-not (empty? diff-map)
+        (vdom/->SetAttributes diff-map))))
+
   Object
   (toString [this]
     (let [tag-name (-> tag name str)
