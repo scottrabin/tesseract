@@ -6,10 +6,23 @@
   (:require
     [clojure.string]
     [tesseract.impl.vdom :as vdom]
+    [tesseract.impl.patch :as impl.patch]
     [tesseract.attrs]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Patches
+
+(defrecord SetAttributes [attrs]
+  impl.patch/IPatch
+  (-patch! [_ node]
+    ;; TODO
+    ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public API
+
 (defrecord Element [tag attrs children]
-  tesseract.impl.vdom/IVirtualDOMNode
+  tesseract.impl.vdom/IVirtualRenderNode
   (-diff [_ other]
     (let [other-attrs (:attrs other)
           diff-map (into {}
@@ -17,9 +30,9 @@
                                :let [self-val (get attrs k)
                                      other-val (get other-attrs k)]
                                :when (not= self-val other-val)]
-                           [k other-val]))]
+                           [(name k) other-val]))]
       (when-not (empty? diff-map)
-        (vdom/->SetAttributes diff-map))))
+        (->SetAttributes diff-map))))
 
   Object
   (toString [this]

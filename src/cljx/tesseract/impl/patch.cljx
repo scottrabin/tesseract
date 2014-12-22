@@ -10,12 +10,6 @@
   (-patch! patch node)
   node)
 
-(def
-  ^{:doc "Placeholder patch type that does not mutate the node"}
-  NoopPatch
-  (reify IPatch
-    (-patch! [_ _] nil)))
-
 (defn patch!
   "Apply an ordered collection of patches to the given node"
   [node patches]

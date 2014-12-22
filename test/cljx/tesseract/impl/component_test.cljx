@@ -7,6 +7,7 @@
     #+cljs [cemerick.cljs.test :as t]
     #+clj  [tesseract.core]
     #+cljs [tesseract.core :include-macros true]
+    [tesseract.impl.vdom :as vdom]
     [tesseract.impl.component :as component]
     [tesseract.dom :as dom]))
 
@@ -28,19 +29,14 @@
           (apply dom/div nil children)))
 
 (deftest defcomponent
-  (testing "exposes a convenience method and a parent class type"
+  (testing "defined symbol is identical to provided symbol"
     (are [f] (ifn? f)
          Attrs
          State
          NoState
-         Children)
-    (are [c] (not (nil? c))
-         AttrsComponent
-         StateComponent
-         NoStateComponent
-         ChildrenComponent))
-  (testing "object class implements Component protocol"
-    (are [c] (satisfies? component/IComponent (c))
+         Children))
+  (testing "object class implements IVirtualRenderNode"
+    (are [c] (satisfies? vdom/IVirtualRenderNode (c))
          Attrs
          State
          NoState
@@ -59,23 +55,24 @@
            NoState {:attrs false :state false :children false}
            Children {:attrs false :state false :children true}))
     (testing "2+-arity"
-      (doseq [c [Attrs State NoState Children]]
+      (doseq [c [Attrs State NoState Children]
+              ;; cljs.core/IFn only goes up to 21 args, no rest-args
+              ;; TODO eventually support some number greater than 3...
+              num-children (range 1 4)]
         (let [attrs {:name (name (c))}
-              one-child (c attrs (dom/div nil "ok"))
-              two-child (c attrs (dom/span nil "one") (dom/span nil "two"))]
-          (is (= (seq [(dom/div nil "ok")])
-                 (seq (:children one-child)))
-          (is (= (seq [(dom/span nil "one") (dom/span nil "two")])
-                 (seq (:children two-child)))))))))
+              children (for [i (range num-children)] (dom/span nil (str i)))
+              component (apply c attrs children)]
+          (is (= (seq children)
+                 (seq (:children component))))))))
   (testing "#name"
     (are [c n] (= (name (c)) n)
          Attrs "Attrs"
          State "State"
          NoState "NoState"
          Children "Children"))
-  (testing "IComponent#render"
+  (testing "vdom/IVirtualRenderNode#render"
     (testing "returns body of render method"
-      (are [c r] (= (component/render c) r)
+      (are [c r] (= (vdom/render c) r)
            (Attrs {:data-test "ok"}) (dom/div {:data-test "ok"})
            (State nil) (dom/span nil (pr-str {:stateful? true}))
            (NoState nil) (dom/span nil "no state")

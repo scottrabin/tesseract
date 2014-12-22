@@ -5,6 +5,7 @@
     [cemerick.cljs.test :as t]
     [tesseract.core :as core :refer-macros [defcomponent]]
     [tesseract.component :as component]
+    [tesseract.impl.vdom :as impl.vdom]
     [tesseract.impl.component :as impl.component]
     [tesseract.dom :as dom]))
 
@@ -39,7 +40,7 @@
     (is (= (dom/ol {:class :test-component}
                    (dom/li {} "first")
                    (dom/li {} "second"))
-           (impl.component/render c)))))
+           (impl.vdom/render c)))))
 
 (deftest test-toString
   (let [c (OrderedList {:on-click (fn [_ _])} "first" "second")]
@@ -111,7 +112,7 @@
 
 (deftest test-comment-list
   (let [comment-list (CommentList {})
-        out (impl.component/render comment-list)]
+        out (impl.vdom/render comment-list)]
     (is (= :div (:tag out)))
     (is (= :comment-list (-> out :attrs :class)))
     (is (= 2 (count (:children out))))

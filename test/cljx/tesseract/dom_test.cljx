@@ -1,10 +1,13 @@
 (ns tesseract.dom-test
-  #+clj (:require [tesseract.dom :as dom :refer [defelement]]
-                  [clojure.test :refer :all])
-  #+cljs (:require [tesseract.dom :as dom]
-                   [cemerick.cljs.test :as t])
-  #+cljs (:require-macros [tesseract.dom :refer [defelement]]
-                          [cemerick.cljs.test :refer [is deftest testing]]))
+  #+cljs
+  (:require-macros
+    [cemerick.cljs.test :refer [is are deftest testing]])
+  (:require
+    #+clj  [tesseract.dom :as dom :refer [defelement]]
+    #+cljs [tesseract.dom :as dom :refer-macros [defelement]]
+    #+clj  [clojure.test :as t :refer [is are deftest testing]]
+    #+cljs [cemerick.cljs.test :as t]
+    [tesseract.impl.vdom :as impl.vdom]))
 
 (defelement my-element)
 
@@ -271,3 +274,35 @@
   (is (= "<div><span>0</span><span>1</span></div>"
          (str (dom/div {} (for [i (range 2)]
                             (dom/span {} i)))))))
+
+(deftest diff-test
+  (testing "single DOM elements"
+    (are [prev-node next-node expected-patches]
+         (= expected-patches (impl.vdom/diff prev-node next-node))
+
+         ;; no changes
+         (dom/div {:data-something "not changed"})
+         (dom/div {:data-something "not changed"})
+         nil
+
+         ;; same map, value changed
+         (dom/div {:data-something "change me"})
+         (dom/div {:data-something "changed"})
+         (dom/->SetAttributes {"data-something" "changed"})
+
+         ;; different map, new value
+         (dom/div {:data-something "keep me"})
+         (dom/div {:data-something "keep me"
+                   :data-other "new"})
+         (dom/->SetAttributes {"data-other" "new"})
+
+         ;; different map, missing value
+         (dom/div {:data-something "remove-me"})
+         (dom/div {})
+         (dom/->SetAttributes {"data-something" nil})
+
+         ;; different map, value added & value removed
+         (dom/div {:data-remove-me "yes"})
+         (dom/div {:data-add-me "added"})
+         (dom/->SetAttributes {"data-remove-me" nil
+                               "data-add-me" "added"}))))

@@ -1,22 +1,16 @@
 (ns tesseract.impl.vdom
-  "Diff/patch behavior used for browser-based virtual DOM elements"
+  "Diff/patch behavior for renderable nested elements"
   (:require
     [tesseract.impl.patch :as impl.patch]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public API
 
-(deftype SetAttributes [attrs]
-  impl.patch/IPatch
-  (-patch! [_ node]
-    ;; TODO
-    ))
-
-(declare diff)
-
-(defprotocol IVirtualDOMNode
+(defprotocol IVirtualRenderNode
   (-diff [self other] "Yield a collection of patches that convert the current
-                      node into the other"))
+                      node into the other")
+  (-patch [self patch] "Apply a given patch to the current node")
+  (render [self] "Generate the virtual render tree under this node"))
 
 (defn diff
   "Diffs two VirtualDOM trees rooted at the given node and yields a collection
