@@ -7,7 +7,30 @@
     #+cljs [tesseract.dom :as dom :refer-macros [defelement]]
     #+clj  [clojure.test :as t :refer [is are deftest testing]]
     #+cljs [cemerick.cljs.test :as t]
+    [clojure.string :as str]
     [tesseract.impl.vdom :as impl.vdom]))
+
+(defn- nodename=
+  "Compare a node's tag name to the given name (with optional namespace)"
+  [nodename node]
+  (= (str/lower-case nodename) (str/lower-case (.-nodeName node))))
+
+(defrecord IntermediateElement [actual-element mount-calls unmount-calls]
+  impl.vdom/IVirtualNode
+  (-mount! [this]
+    (swap! mount-calls conj this)
+    (impl.vdom/-mount! actual-element))
+  (-unmount! [this node]
+    (swap! unmount-calls conj [this node])
+    (impl.vdom/-unmount! actual-element node))
+  (-diff [this next-node]
+    (impl.vdom/diff actual-element (:actual-element next-node)))
+  (render [this]
+    (impl.vdom/render actual-element)))
+
+(defn- ->IntermediateElement
+  [actual-element]
+  (new IntermediateElement actual-element (atom []) (atom [])))
 
 (defelement my-element)
 
@@ -255,54 +278,264 @@
 (deftest test-element-wbr
   (is (ifn? dom/wbr)))
 
-(deftest element-to-string
-  (testing "rendered elements"
-    (is (= "<div></div>"
-           (str (dom/div {}))))
-    (is (= "<div class=\"some-class\"></div>"
-           (str (dom/div {:class :some-class}))))
-    (is (= "<div class=\"parent\"><span class=\"child\"></span></div>"
-           (str (dom/div {:class "parent"}
-                         (dom/span {:class "child"})))))
-    (is (= "<div>Arbitrary text here</div>"
-           (str (dom/div {} "Arbitrary text here")))))
-  (testing "escaping attributes"
-    (is (= "<div class=\"&lt;&gt;&quot;&apos;&amp;\"></div>"
-           (str (dom/div {:class "<>\"'&"}))))))
+(deftest Element
+  (testing "impl.vdom/IVirtualNode"
+    #+cljs
+    (testing "#-mount!"
+      (testing "instantiates a node with proper attributes"
+        (let [vnode (dom/div {:children false})
+              node (impl.vdom/-mount! vnode)]
+          (is (= "false" (.getAttribute node "children")))
+          (is (nodename= "div" node))))
+      (testing "correctly appends child elements"
+        (let [vnode (dom/span {:children true} (dom/hr))
+              node (impl.vdom/-mount! vnode)]
+          (is (= "true"
+                 (.getAttribute node "children")))
+          (is (nodename= "span" node))
+          (is (nodename= "hr" (aget (.-childNodes node) 0)))))
+      (testing "calls `-mount!` on children vnodes"
+        (let [child-vnode (->IntermediateElement (dom/hr))
+              vnode (dom/span {:children true} child-vnode)
+              node (impl.vdom/-mount! vnode)]
+          (is (= [child-vnode]
+                 @(:mount-calls child-vnode)))
+          (is (nodename= "hr" (aget (.-childNodes node) 0))))))
 
-(deftest recurses-children
-  (is (= "<div><span>0</span><span>1</span></div>"
-         (str (dom/div {} (for [i (range 2)]
-                            (dom/span {} i)))))))
+    #+cljs
+    (testing "#-unmount!"
+      (let [child-1 (->IntermediateElement (dom/p {:index 0}))
+            child-2 (->IntermediateElement (dom/span {:index 1}))
+            vparent (->IntermediateElement (dom/div {:parent true} child-1 child-2))
+            parent-node (impl.vdom/-mount! vparent)]
+        (impl.vdom/-unmount! vparent parent-node)
+        (is (= [[child-1 (aget (impl.vdom/children parent-node) 0)]]
+               @(:unmount-calls child-1)))
+        (is (= [[child-2 (aget (impl.vdom/children parent-node) 1)]]
+               @(:unmount-calls child-2)))))
 
-(deftest diff-test
-  (testing "single DOM elements"
-    (are [prev-node next-node expected-patches]
-         (= expected-patches (impl.vdom/diff prev-node next-node))
+    (testing "#-diff"
+      (are [prev-node next-node expected-patches]
+           (= expected-patches (impl.vdom/-diff prev-node next-node))
 
-         ;; no changes
-         (dom/div {:data-something "not changed"})
-         (dom/div {:data-something "not changed"})
-         nil
+           ;; no changes
+           (dom/div {:data-something "not changed"})
+           (dom/div {:data-something "not changed"})
+           nil
 
-         ;; same map, value changed
-         (dom/div {:data-something "change me"})
-         (dom/div {:data-something "changed"})
-         (dom/->SetAttributes {"data-something" "changed"})
+           ;; same map, value changed
+           (dom/div {:data-something "change me"})
+           (dom/div {:data-something "changed"})
+           (dom/->PatchSetAttributes {:data-something "changed"})
 
-         ;; different map, new value
-         (dom/div {:data-something "keep me"})
-         (dom/div {:data-something "keep me"
-                   :data-other "new"})
-         (dom/->SetAttributes {"data-other" "new"})
+           ;; different map, new value
+           (dom/div {:data-something "keep me"})
+           (dom/div {:data-something "keep me"
+                     :data-other "new"})
+           (dom/->PatchSetAttributes {:data-other "new"})
 
-         ;; different map, missing value
-         (dom/div {:data-something "remove-me"})
-         (dom/div {})
-         (dom/->SetAttributes {"data-something" nil})
+           ;; different map, missing value
+           (dom/div {:data-something "remove-me"})
+           (dom/div {})
+           (dom/->PatchSetAttributes {:data-something nil})
 
-         ;; different map, value added & value removed
-         (dom/div {:data-remove-me "yes"})
-         (dom/div {:data-add-me "added"})
-         (dom/->SetAttributes {"data-remove-me" nil
-                               "data-add-me" "added"}))))
+           ;; different map, value added & value removed
+           (dom/div {:data-remove-me "yes"})
+           (dom/div {:data-add-me "added"})
+           (dom/->PatchSetAttributes {:data-remove-me nil
+                                      :data-add-me "added"})))
+
+    (testing "#render"
+      ;; TODO
+      ))
+
+  (testing "impl.vdom/IContainerNode"
+    (testing "#children"
+      (is (= nil
+             (impl.vdom/children (dom/span))))
+      (is (= nil
+             (impl.vdom/children (dom/div nil))))
+      (is (= nil
+             (impl.vdom/children (dom/p {}))))
+      (is (= nil
+             (impl.vdom/children (dom/section {:attr "value"}))))
+      (is (= [(dom/hr)]
+             (impl.vdom/children (dom/span nil (dom/hr)))))
+      (is (= [(dom/hr) (dom/table)]
+             (impl.vdom/children (dom/div nil (dom/hr) (dom/table)))))))
+
+  (testing "Object"
+    (testing "#toString"
+      (is (= "<div></div>"
+             (str (dom/div {}))))
+      (is (= "<div class=\"some-class\"></div>"
+             (str (dom/div {:class :some-class}))))
+      (is (= "<div class=\"parent\"><span class=\"child\"></span></div>"
+             (str (dom/div {:class "parent"}
+                           (dom/span {:class "child"})))))
+      (is (= "<div>Arbitrary text here</div>"
+             (str (dom/div {} "Arbitrary text here"))))
+
+      (testing "escaping attributes"
+        (is (= "<div class=\"&lt;&gt;&quot;&apos;&amp;\"></div>"
+               (str (dom/div {:class "<>\"'&"})))))
+
+      (testing "recurses children"
+        (is (= "<div><span>0</span><span>1</span></div>"
+               (str (dom/div {} (for [i (range 2)]
+                                  (dom/span {} i))))))))))
+
+#+cljs
+(deftest extend-basic-types
+  (testing "string"
+    (let [vnode (dom/span {:children "string"}
+                          "This is the first string"
+                          "Followed by another string"
+                          "And yet another")
+          node (impl.vdom/-mount! vnode)]
+
+      (is (= 3 (count (impl.vdom/children node))))
+      (is (= "This is the first string"
+             (.-textContent (nth (impl.vdom/children node) 0))))
+      (is (= "Followed by another string"
+             (.-textContent (nth (impl.vdom/children node) 1))))
+      (is (= "And yet another"
+             (.-textContent (nth (impl.vdom/children node) 2))))))
+
+  (testing "number"
+    (let [vnode (dom/span {:children "number"}
+                          0 1 2 3)
+          node (impl.vdom/-mount! vnode)]
+
+      (is (= 4 (count (impl.vdom/children node))))
+      (is (= "0"
+             (.-textContent (nth (impl.vdom/children node) 0))))
+      (is (= "1"
+             (.-textContent (nth (impl.vdom/children node) 1))))
+      (is (= "2"
+             (.-textContent (nth (impl.vdom/children node) 2))))
+      (is (= "3"
+             (.-textContent (nth (impl.vdom/children node) 3))))))
+
+  (testing "boolean"
+    (let [vnode (dom/span {:children "boolean"}
+                          true false)
+          node (impl.vdom/-mount! vnode)]
+
+      (is (= 2 (count (impl.vdom/children node))))
+      (is (= "true"
+             (.-textContent (nth (impl.vdom/children node) 0))))
+      (is (= "false"
+             (.-textContent (nth (impl.vdom/children node) 1))))))
+
+  (testing "nil"
+    (let [vnode (dom/span {:children "boolean"}
+                          "OK" nil 3)
+          node (impl.vdom/-mount! vnode)]
+
+      (is (= 3 (count (impl.vdom/children node))))
+      (is (= "OK"
+             (.-textContent (nth (impl.vdom/children node) 0))))
+      (is (= (. js/document -COMMENT_NODE)
+             (.-nodeType (nth (impl.vdom/children node) 1))))
+      (is (= "3"
+             (.-textContent (nth (impl.vdom/children node) 2))))
+      (is (= "OK3"
+             (.-textContent node))))))
+
+#+cljs
+(deftest NodeList
+  (testing "ISeqable"
+    (testing "#-seq"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2]]
+          (.appendChild parent c))
+
+        (let [nodes (seq (impl.vdom/children parent))]
+          (is (= 2 (count nodes)))
+          (is (identical? child-1 (first nodes)))
+          (is (identical? child-2 (second nodes)))))))
+
+  (testing "ICounted"
+    (testing "#-count"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            child-3 (.createElement js/document "hr")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2 child-3]]
+          (.appendChild parent c))
+
+        (is (= 3 (count (impl.vdom/children parent)))))))
+
+  (testing "IIndexed"
+    (testing "#-nth (arity 2)"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2]]
+          (.appendChild parent c))
+
+        (let [children (impl.vdom/children parent)]
+          (is (identical? child-1 (nth children 0)))
+          (is (identical? child-2 (nth children 1)))
+          (is (nil? (nth children 2))))))
+    (testing "#-nth (arity 3)"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2]]
+          (.appendChild parent c))
+
+        (let [children (impl.vdom/children parent)]
+          (is (identical? child-1 (nth children 0 ::not-found)))
+          (is (identical? child-2 (nth children 1 ::not-found)))
+          (is (= ::not-found (nth children 2 ::not-found))))))))
+
+#+cljs
+(deftest HTMLElement
+  (testing "impl.vdom/IRenderNode"
+    (testing "#-insert!"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            parent  (.createElement js/document "div")
+            to-insert (->IntermediateElement (dom/hr))]
+        (doseq [c [child-1 child-2]]
+          (.appendChild parent c))
+        (impl.vdom/-insert! parent to-insert 1)
+
+        (is (= [to-insert]
+               @(:mount-calls to-insert)))
+        (is (nodename= "span" (nth (impl.vdom/children parent) 0)))
+        (is (nodename= "hr" (nth (impl.vdom/children parent) 1)))
+        (is (nodename= "p" (nth (impl.vdom/children parent) 2)))
+        (is (= 3 (count (impl.vdom/children parent))))))
+
+    (testing "#-remove!"
+      (let [to-remove (->IntermediateElement (dom/hr))
+            child-1 (.createElement js/document "span")
+            child-2 (impl.vdom/-mount! to-remove)
+            child-3 (.createElement js/document "p")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2 child-3]]
+          (.appendChild parent c))
+        (impl.vdom/-remove! parent to-remove 1)
+
+        (is (= [[to-remove child-2]]
+               @(:unmount-calls to-remove)))
+        (is (nodename= "span" (nth (impl.vdom/children parent) 0)))
+        (is (nodename= "p" (nth (impl.vdom/children parent) 1)))
+        (is (= 2 (count (impl.vdom/children parent)))))))
+
+  (testing "impl.vdom/IContainerNode"
+    (testing "#children"
+      (let [child-1 (.createElement js/document "span")
+            child-2 (.createElement js/document "p")
+            parent  (.createElement js/document "div")]
+        (doseq [c [child-1 child-2]]
+          (.appendChild parent c))
+
+        (is (nodename= "span" (nth (impl.vdom/children parent) 0)))
+        (is (nodename= "p" (nth (impl.vdom/children parent) 1)))
+        (is (= 2 (count (impl.vdom/children parent))))))))

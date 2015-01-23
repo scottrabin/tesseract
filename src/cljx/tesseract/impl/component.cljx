@@ -1,6 +1,7 @@
 (ns tesseract.impl.component
   (:require
-    [tesseract.impl.vdom :as vdom]))
+    [tesseract.impl.patch :as impl.patch]
+    [tesseract.impl.vdom :as impl.vdom]))
 
 #+clj
 (def ^:private default-spec
@@ -74,66 +75,60 @@
               [kw (transform value)])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Patches
+
+(defrecord PatchUpdate [next-props]
+  impl.patch/IPatch
+  (-patch! [_ node*])
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public API
 
 (defrecord VirtualDOMNode [attrs state children]
-  #+clj
-  clojure.lang.Named
-  #+clj
-  (getName [this]
-    (get-in (meta this) [::config :name]))
-
-  #+cljs
-  cljs.core/INamed
-  #+cljs
-  (-name [this]
+  #+clj clojure.lang.Named #+cljs cljs.core/INamed
+  (#+clj getName #+cljs -name
+    [this]
     (get-in (meta this) [::config :name]))
 
   Object
   (toString [this]
-    (str (vdom/render this)))
+    (str (impl.vdom/render this)))
 
-  #+clj clojure.lang.IFn
+  ;; TODO why does cljs define `-invoke` and clj `invoke`?
+  #+clj clojure.lang.IFn #+cljs cljs.core/IFn
   ;; TODO throw error? just use bare component
-  #+clj (invoke [this] this)
-  #+clj (invoke [this attrs]
-          (assoc this :attrs attrs))
-  #+clj (invoke [this attrs child]
-          (assoc this
-                 :attrs attrs
-                 :children [child]))
-  #+clj (invoke [this attrs c1 c2]
-          (assoc this
-                 :attrs attrs
-                 :children [c1 c2]))
-  #+clj (invoke [this attrs c1 c2 c3]
-          (assoc this
-                 :attrs attrs
-                 :children [c1 c2 c3]))
+  (#+clj invoke #+cljs -invoke
+    [this] this)
+  (#+clj invoke #+cljs -invoke
+    [this attrs]
+    (assoc this :attrs attrs))
+  (#+clj invoke #+cljs -invoke
+    [this attrs child]
+    (assoc this
+           :attrs attrs
+           :children [child]))
+  (#+clj invoke #+cljs -invoke
+    [this attrs c1 c2]
+    (assoc this
+           :attrs attrs
+           :children [c1 c2]))
+  (#+clj invoke #+cljs -invoke
+    [this attrs c1 c2 c3]
+    (assoc this
+           :attrs attrs
+           :children [c1 c2 c3]))
   #+clj (applyTo [this args]
           (clojure.lang.AFn/applyToHelper this args))
 
-  ;; TODO why does cljs define `-invoke` and clj `invoke`?
-  #+cljs cljs.core/IFn
-  #+cljs (-invoke [this] this)
-  #+cljs (-invoke [this attrs]
-           (assoc this :attrs attrs))
-  #+cljs (-invoke [this attrs c1]
-           (assoc this
-                  :attrs attrs
-                  :children [c1]))
-  #+cljs (-invoke [this attrs c1 c2]
-           (assoc this
-                  :attrs attrs
-                  :children [c1 c2]))
-  #+cljs (-invoke [this attrs c1 c2 c3]
-           (assoc this
-                  :attrs attrs
-                  :children [c1 c2 c3]))
-
-  vdom/IVirtualRenderNode
-  (-diff [_ other])
-  (-patch [_ patch])
+  impl.vdom/IVirtualNode
+  (-mount! [this]
+    (impl.vdom/-mount! (impl.vdom/render this)))
+  (-unmount! [this node]
+    (impl.vdom/-unmount! (impl.vdom/render this) node))
+  (-diff [self other]
+    ;; TODO
+    nil)
   (render [this]
     (let [render-fn (get-in (meta this) [::config :render])]
       (render-fn attrs state children))))

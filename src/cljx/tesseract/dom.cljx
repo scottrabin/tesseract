@@ -5,39 +5,55 @@
     [tesseract.dom :refer [defelement]])
   (:require
     [clojure.string]
-    [tesseract.impl.vdom :as vdom]
+    [tesseract.impl.vdom :as impl.vdom]
     [tesseract.impl.patch :as impl.patch]
-    [tesseract.attrs]))
+    [tesseract.attrs :as attrs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Patches
 
-(defrecord SetAttributes [attrs]
+(defrecord PatchSetAttributes [attrs]
   impl.patch/IPatch
   (-patch! [_ node]
-    ;; TODO
-    ))
+    (doseq [[attr v] attrs]
+      (attrs/set-attribute! attr node v))))
+
+(defrecord PatchSetText [text]
+  impl.patch/IPatch
+  (-patch! [_ node]
+    (set! (. node -textContent) text)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public API
 
 (defrecord Element [tag attrs children]
-  tesseract.impl.vdom/IVirtualRenderNode
-  (-diff [_ other]
-    (let [other-attrs (:attrs other)
-          diff-map (into {}
-                         (for [k (reduce conj (keys attrs) (keys other-attrs))
-                               :let [self-val (get attrs k)
-                                     other-val (get other-attrs k)]
-                               :when (not= self-val other-val)]
-                           [(name k) other-val]))]
-      (when-not (empty? diff-map)
-        (->SetAttributes diff-map))))
+  impl.vdom/IVirtualNode
+  (-mount! [_]
+    #+cljs
+    (let [el (.createElement js/document (name tag))]
+      (doseq [[attr v] attrs]
+        (attrs/set-attribute! attr el v))
+      (doseq [c children]
+        (.appendChild el (impl.vdom/-mount! c)))
+      el))
+  (-unmount! [_ node]
+    #+cljs
+    (loop [child-node (.-firstChild node)
+           [child-vnode & more] children]
+      (impl.vdom/-unmount! child-vnode child-node)
+      (when more
+        (recur (.-nextSibling child-node) more))))
+  (-diff [this next-node]
+    (when-let [attr-diff (impl.vdom/diff-map attrs (:attrs next-node))]
+      (->PatchSetAttributes attr-diff)))
+  (render [this] this)
+
+  impl.vdom/IContainerNode
+  (children [_] children)
 
   Object
   (toString [this]
-    (let [tag-name (-> tag name str)
-          attrs (or (tesseract.attrs/get-attrs this) attrs)]
+    (let [tag-name (-> tag name str)]
       (str
         "<"
         tag-name
@@ -52,18 +68,93 @@
           (clojure.string/join (clojure.core/map str (flatten children))))
         "</" tag-name ">"))))
 
+#+cljs
+(extend-type cljs.core/Keyword
+  attrs/IAttribute
+  (set-attribute! [this node value]
+    (.setAttribute node (name this) (attrs/to-attr value))))
+
+#+cljs
+(extend-protocol impl.vdom/IVirtualNode
+  string
+  (-mount! [this]
+    (.createTextNode js/document this))
+  (-unmount! [this node])
+  (-diff [this other]
+    (when-not (= this other)
+      (->PatchSetText other)))
+  (render [this] this)
+
+  number
+  (-mount! [this]
+    (.createTextNode js/document (str this)))
+  (-unmount! [this node])
+  (-diff [this other]
+    (when-not (= this other)
+      (->PatchSetText (str other))))
+  (render [this] this)
+
+  boolean
+  (-mount! [this]
+    (.createTextNode js/document (str this)))
+  (-unmount! [this node])
+  (-diff [this other]
+    (when-not (= this other)
+      (->PatchSetText (str other))))
+  (render [this] this)
+
+  nil
+  (-mount! [_]
+    (.createComment js/document ""))
+  (-unmount! [_ _])
+  (-diff [this other])
+  (render [this] this))
+
+#+cljs
+(extend-type js/NodeList
+  ISequential
+  ISeqable
+  (-seq [this]
+    (for [i (range (.-length this))]
+      (.item this i)))
+  ICounted
+  (-count [this]
+    (.-length this))
+  IIndexed
+  (-nth [this n]
+    (.item this n))
+  (-nth [this n not-found]
+    (or (.item this n)
+        not-found)))
+
+#+cljs
+(extend-type js/HTMLElement
+  impl.vdom/IRenderNode
+  (-insert! [this insert-vnode insert-position]
+    (.insertBefore this
+                   (impl.vdom/-mount! insert-vnode)
+                   (.item (.-childNodes this) insert-position)))
+  (-remove! [this remove-vnode remove-position]
+    (let [node-to-remove (.item (.-childNodes this) remove-position)]
+      (impl.vdom/-unmount! remove-vnode node-to-remove)
+      (.removeChild this node-to-remove)))
+
+  impl.vdom/IContainerNode
+  (children [this]
+    (.-childNodes this)))
+
 #+clj
 (defmacro defelement
   [tag]
   (let [tag-kw (keyword tag)]
-    `(let [base-element# (new Element ~tag-kw nil [])]
+    `(let [base-element# (new Element ~tag-kw nil nil)]
        (defn ~tag
          ([]
           base-element#)
          ([attrs#]
           (if (nil? attrs#)
             base-element#
-            (new Element ~tag-kw attrs# [])))
+            (new Element ~tag-kw attrs# nil)))
          ([attrs# & children#]
           (new Element ~tag-kw attrs# (vec children#)))))))
 

@@ -7,6 +7,10 @@
 (defprotocol IAttributeValue
   (to-attr [this] "Generate an unescaped attribute value string"))
 
+(defprotocol IAttribute
+  (set-attribute! [this node value]
+                  "Set the attribute on the given node to the specified value"))
+
 (extend-protocol IAttributeValue
   #+clj String #+cljs string
   (to-attr [this]
